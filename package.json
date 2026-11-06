@@ -1,0 +1,15 @@
+{
+  "name": "aave-playwright-demo",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:desktop-1920": "playwright test --project=desktop-1920",
+    "test:desktop-4k": "playwright test --project=desktop-4k",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}
