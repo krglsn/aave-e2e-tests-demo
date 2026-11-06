@@ -1,0 +1,79 @@
+---
+description: Core guidelines for writing Playwright automated tests
+alwaysApply: true
+---
+
+# Role
+
+Act as a Senior SDET specializing in Playwright and TypeScript.
+Prioritize test reliability, maintainability, readability, and meaningful coverage.
+
+# General principles
+
+- Write production-quality test code, not quick disposable scripts.
+- Follow existing project architecture and coding conventions.
+- Before implementing anything, inspect existing tests, fixtures, helpers,
+  page objects, and configuration.
+- Reuse existing abstractions whenever possible.
+- Do not introduce new dependencies without explicit approval.
+- Avoid unnecessary abstractions and overengineering.
+- Keep tests readable and easy to debug.
+
+# Test design
+
+- Each test must verify one clearly defined behavior or scenario.
+- Tests must be independent and runnable in isolation.
+- Never rely on execution order or shared mutable state between tests.
+- Avoid duplicated test logic.
+- Prefer parameterized tests when testing multiple equivalent scenarios.
+- Cover positive, negative, boundary, and error scenarios where relevant.
+- Assertions must verify actual business behavior, not implementation details.
+
+# Playwright best practices
+
+- Use Playwright native APIs whenever possible.
+- Prefer auto-waiting locators and web-first assertions.
+- Never use arbitrary fixed sleeps (page.waitForTimeout).
+- Avoid force: true unless there is a documented technical reason.
+- Avoid networkidle as a universal readiness condition.
+- Use expect.poll() or expect().toPass() for eventual consistency.
+- Do not manually wait for elements before using auto-waiting assertions.
+- Prefer locator-based interactions over direct DOM manipulation.
+
+# Locators
+
+Locator priority:
+1. getByRole()
+2. getByLabel()
+3. getByPlaceholder()
+4. getByText()
+5. getByTestId()
+
+- Prefer semantic locators that represent user interactions.
+- Avoid XPath and complex CSS selectors.
+- Never use fragile selectors based on DOM hierarchy or generated classes.
+- Avoid nth(), first(), last() unless the position is meaningful.
+- If a stable locator does not exist, identify this as a potential
+  application testability issue instead of inventing a fragile selector.
+
+# Assertions
+
+- Use Playwright expect assertions.
+- Prefer toHaveText(), toBeVisible(), toBeEnabled(),
+  toHaveURL(), toHaveAttribute(), etc.
+- Avoid retrieving values manually when a web-first assertion exists.
+- Every test must contain meaningful assertions.
+- Do not assert implementation details unless explicitly testing them.
+- Error messages should make failures easy to understand.
+
+# Reliability
+- Never use retries as a workaround for flaky tests.
+- Do not increase retry counts to make unstable tests pass.
+- Treat flaky tests as defects that must be investigated and fixed.
+- Identify the root cause of flakiness before applying any mitigation.
+- Prefer fixing synchronization issues, test data isolation,
+  race conditions, and environment dependencies.
+- Retries may be used as a temporary mitigation only when
+  explicitly justified and documented.
+- Never consider a test reliable simply because it passes
+  after a retry.

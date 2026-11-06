@@ -1,0 +1,43 @@
+---
+description: Guidelines for AI-assisted test development
+alwaysApply: true
+---
+
+# Before implementation
+
+- Inspect the relevant application code and existing tests first.
+- Understand the feature behavior before writing test cases.
+- Identify existing fixtures, helpers, page objects, and API clients.
+- Do not assume functionality or selectors that have not been verified.
+- If requirements are ambiguous, ask for clarification.
+
+# Implementation workflow
+
+1. Analyze the requested functionality.
+2. Identify relevant user flows and edge cases.
+3. Inspect existing test infrastructure.
+4. Propose a minimal implementation approach.
+5. Implement the tests.
+6. Run the relevant tests.
+7. Review failures and fix actual issues.
+8. Summarize changes and remaining limitations.
+
+# Code modification rules
+
+- Modify only files relevant to the requested task.
+- Do not refactor unrelated code.
+- Do not silently change existing test behavior.
+- Do not remove existing assertions to make tests pass.
+- Do not weaken assertions to resolve failures.
+- Do not modify application code to accommodate tests
+  unless explicitly requested.
+- Never invent API endpoints, response structures,
+  test IDs, or business requirements.
+
+# Debugging
+
+- Investigate the root cause of failures.
+- Distinguish between product bugs, test bugs,
+  environment issues, and infrastructure problems.
+- Preserve useful diagnostic information.
+- Report tests that could not be executed and explain why.

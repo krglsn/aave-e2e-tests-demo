@@ -1,0 +1,41 @@
+---
+description: Test architecture and code organization guidelines
+alwaysApply: true
+---
+
+# Architecture
+
+- Follow the existing project architecture.
+- Use Page Object Model (POM) for reusable page-level interactions.
+- Keep business assertions in test files whenever practical.
+- Page objects should encapsulate page interactions and locators.
+- Do not turn page objects into large collections of unrelated methods.
+- Keep API clients and business logic separate from UI page objects.
+- Use fixtures for reusable setup, authentication, and test dependencies.
+
+# Fixtures
+
+- Prefer Playwright fixtures over beforeEach/afterEach
+  for reusable test setup.
+- Use test-scoped fixtures by default.
+- Use worker-scoped fixtures only for immutable or safely shared resources.
+- Ensure fixtures clean up resources they create.
+- Avoid hidden dependencies between fixtures.
+- Keep fixture initialization predictable and explicit.
+
+# Test data
+
+- Do not hardcode reusable test data throughout test files.
+- Use factories or dedicated test-data builders for complex entities.
+- Generate unique data when tests can run in parallel.
+- Avoid relying on pre-existing mutable application state.
+- Keep test data deterministic wherever possible.
+
+# Code quality
+
+- Avoid duplicated selectors and interaction logic.
+- Avoid overly generic helper methods.
+- Prefer explicit method names describing user actions.
+- Keep methods small and focused.
+- Avoid excessive inheritance.
+- Do not create abstractions for one-time operations.
