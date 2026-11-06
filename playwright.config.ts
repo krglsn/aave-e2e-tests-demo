@@ -1,8 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import { getPageUrl } from './e2e/config/page-url.js';
 
 const desktopChrome = devices['Desktop Chrome'];
 
-const baseURL = process.env.BASE_URL ?? 'https://app.aave.com';
+const baseURL = getPageUrl();
 
 export default defineConfig({
   testDir: './e2e/tests',
