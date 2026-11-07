@@ -12,6 +12,11 @@ type Fixtures = {
 
 export const test = base.extend<Fixtures>({
   page: async ({ page }, use) => {
+    await page.addInitScript(() => {
+      // Aave hides the analytics banner once this choice has been recorded.
+      localStorage.setItem('userAcceptedAnalytics_v1', 'false');
+      localStorage.setItem('analyticsConsentCounted_v1', 'true');
+    });
     const goto = page.goto.bind(page);
     page.goto = (url, options) => openApp(goto, url, options);
     await use(page);
