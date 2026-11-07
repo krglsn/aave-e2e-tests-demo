@@ -45,11 +45,11 @@ Prioritize test reliability, maintainability, readability, and meaningful covera
 # Locators
 
 Locator priority:
-1. getByRole()
-2. getByLabel()
-3. getByPlaceholder()
-4. getByText()
-5. getByTestId()
+1. getByTestId()
+2. getByRole()
+3. getByLabel()
+4. getByPlaceholder()
+5. getByText()
 
 - Prefer semantic locators that represent user interactions.
 - Avoid XPath and complex CSS selectors.
@@ -57,6 +57,7 @@ Locator priority:
 - Avoid nth(), first(), last() unless the position is meaningful.
 - If a stable locator does not exist, identify this as a potential
   application testability issue instead of inventing a fragile selector.
+- Never use click by coordinate, bind to a locator.
 
 # Assertions
 
