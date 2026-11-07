@@ -1,5 +1,6 @@
-import { test as base, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
 import { UnauthorisedAavePage } from '../pages/unauthorised-aave.page.js';
+import { test as base } from './wallet.fixture.js';
 
 type Fixtures = {
   unauthorisedAavePage: UnauthorisedAavePage;

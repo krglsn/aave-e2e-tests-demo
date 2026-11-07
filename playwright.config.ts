@@ -7,7 +7,7 @@ const baseURL = getPageUrl();
 
 export default defineConfig({
   testDir: './e2e/tests',
-  fullyParallel: true,
+  workers: process.env.CI ? 2 : 1,  // cloudflare rate limit may trigger
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: [
