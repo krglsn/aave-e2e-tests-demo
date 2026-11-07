@@ -1,5 +1,8 @@
+import { existsSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
 import { getPageUrl } from './e2e/config/page-url.js';
+
+if (existsSync('.env')) process.loadEnvFile('.env');
 
 const desktopChrome = devices['Desktop Chrome'];
 

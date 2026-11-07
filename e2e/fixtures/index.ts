@@ -6,6 +6,7 @@ import { getPageUrl } from '../config/page-url.js';
 import { DashboardPage } from '../pages/dashboard.page.js';
 import { MarketsPage } from '../pages/markets.page.js';
 import { UnauthorisedAavePage } from '../pages/unauthorised-aave.page.js';
+import { requireWallet1, type Wallet1 } from './wallet1.fixture.js';
 import { test as base } from './wallet.fixture.js';
 
 const rateLimitStatus = 429;
@@ -14,6 +15,7 @@ type Fixtures = {
   unauthorisedAavePage: UnauthorisedAavePage;
   dashboardPage: DashboardPage;
   marketsPage: MarketsPage;
+  wallet1: Wallet1;
 };
 
 type BlockchainFixtures = {
@@ -49,6 +51,9 @@ export const test = base.extend<Fixtures, BlockchainFixtures>({
   },
   marketsPage: async ({ page }, use) => {
     await use(new MarketsPage(page));
+  },
+  wallet1: async ({ blockchain, wallet }, use) => {
+    await use(await requireWallet1(blockchain, wallet.address));
   },
 });
 
