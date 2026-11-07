@@ -1,6 +1,7 @@
 import { test as base, type Page } from '@playwright/test';
 
-const defaultWalletAddress = '0x1111111111111111111111111111111111111111';
+export const testWallet1 = '0x7b697Bf94E3fa3559Ee3fbc0389D942b7230Da54';
+export const testWallet2 = '0xf9b4B50794393C4870956B73531AFC83CBc7436b';
 const defaultChainId = 1;
 
 type WalletAction = 'connect' | 'disconnect' | 'reject';
@@ -16,6 +17,7 @@ export type MockWallet = {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
   reject(): Promise<void>;
+  switchAccount(address: string): Promise<void>;
 };
 
 type WalletFixtures = {
@@ -29,6 +31,7 @@ declare global {
       connect(): void;
       disconnect(): void;
       reject(): void;
+      switchAccount(address: string): void;
     };
   }
 }
@@ -53,8 +56,12 @@ class Eip1193Wallet implements MockWallet {
           return error;
         };
 
-        let accounts: string[] = [];
-        let currentChainId = chainId;
+        const storageKey = 'mockWalletAccount';
+        const chainKey = 'mockWalletChainId';
+        const storedAccount = localStorage.getItem(storageKey);
+        const storedChainId = localStorage.getItem(chainKey);
+        let accounts: string[] = storedAccount ? [storedAccount] : [];
+        let currentChainId = storedChainId ?? chainId;
         let rejectNext = false;
         const pending: Array<{
           method: string;
@@ -85,12 +92,15 @@ class Eip1193Wallet implements MockWallet {
             }
             if (method === 'wallet_revokePermissions') {
               accounts = [];
+              localStorage.removeItem(storageKey);
+              localStorage.removeItem(chainKey);
               emit('accountsChanged', []);
               emit('disconnect', rpcError(4900, 'The provider is disconnected from all chains.'));
               return null;
             }
             if (method === 'wallet_switchEthereumChain' || method === 'wallet_addEthereumChain') {
               currentChainId = params?.[0]?.chainId ?? currentChainId;
+              localStorage.setItem(chainKey, currentChainId);
               emit('chainChanged', currentChainId);
               return null;
             }
@@ -112,14 +122,22 @@ class Eip1193Wallet implements MockWallet {
           connect() {
             rejectNext = false;
             if (!accounts.length) accounts = [address];
+            localStorage.setItem(storageKey, accounts[0]);
             pending.splice(0).forEach(settle);
             emit('connect', { chainId: currentChainId });
             emit('accountsChanged', accounts.slice());
           },
           disconnect() {
             accounts = [];
+            localStorage.removeItem(storageKey);
+            localStorage.removeItem(chainKey);
             emit('accountsChanged', []);
             emit('disconnect', rpcError(4900, 'The provider is disconnected from all chains.'));
+          },
+          switchAccount(next: string) {
+            accounts = [next];
+            localStorage.setItem(storageKey, next);
+            emit('accountsChanged', accounts.slice());
           },
           reject() {
             const queued = pending.splice(0);
@@ -160,6 +178,14 @@ class Eip1193Wallet implements MockWallet {
     return this.invoke('reject');
   }
 
+  switchAccount(address: string): Promise<void> {
+    return base.step('Switch the mocked wallet account', async () => {
+      await this.page.evaluate((next) => {
+        window.__mockWallet?.switchAccount(next);
+      }, address);
+    });
+  }
+
   private async invoke(action: WalletAction): Promise<void> {
     await base.step(`${actionLabel[action]} the mocked wallet`, async () => {
       const ready = await this.page
@@ -187,7 +213,7 @@ function toHexChainId(chainId: number): string {
 }
 
 export const test = base.extend<WalletFixtures & WalletOptions>({
-  walletAddress: [defaultWalletAddress, { option: true }],
+  walletAddress: [testWallet1, { option: true }],
   walletChainId: [defaultChainId, { option: true }],
   wallet: async ({ page, walletAddress, walletChainId }, use) => {
     const wallet = new Eip1193Wallet(page, walletAddress, walletChainId);

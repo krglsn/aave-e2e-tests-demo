@@ -14,9 +14,12 @@ export class UnauthorisedAavePage extends BasePage {
   readonly testModeSwitch = this.settingsMenu.getByRole('menuitem', { name: 'Test Mode' }).getByRole('checkbox');
   readonly metaMaskButton = this.page.getByRole('button', { name: 'MetaMask' });
   readonly walletSelectionDialog = this.page.getByRole('dialog').filter({ hasText: 'select a wallet' });
+  readonly requestingConnectionDialog = this.page.getByRole('dialog').filter({ hasText: 'Requesting connection' });
   readonly closeWalletSelectionButton = this.page.getByRole('button', { name: 'Close' });
   readonly retryWalletConnectionButton = this.page.getByRole('button', { name: 'Retry' });
   readonly walletRejectionMessage = this.page.getByText('You cancelled the request.');
+  readonly connectedWalletDialog = this.page.getByRole('dialog').filter({ hasText: 'Connected' });
+  readonly disconnectWalletButton = this.connectedWalletDialog.getByRole('button').filter({ hasText: 'Disconnect' });
 
   get url(): string {
     return getPageUrl();
@@ -62,8 +65,31 @@ export class UnauthorisedAavePage extends BasePage {
     });
   }
 
+  async openConnectedWallet(address: string): Promise<void> {
+    await test.step('Open the connected wallet', async () => {
+      await this.accountButton(address).click();
+    });
+  }
+
+  async disconnectConnectedWallet(): Promise<void> {
+    await test.step('Disconnect the wallet from the app', async () => {
+      await this.disconnectWalletButton.click();
+    });
+  }
+
+  async reload(): Promise<void> {
+    await test.step('Reload the app page', async () => {
+      await this.page.reload();
+    });
+  }
+
   accountButton(address: string): Locator {
     const shortened = `${address.slice(0, 4)}...${address.slice(-4)}`;
     return this.page.getByRole('button', { name: shortened });
+  }
+
+  connectedAccountHeading(address: string): Locator {
+    const shortened = `${address.slice(0, 6)}••••${address.slice(-4)}`;
+    return this.connectedWalletDialog.getByRole('heading', { name: shortened });
   }
 }
