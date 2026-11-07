@@ -35,6 +35,14 @@ export class DashboardPage extends BasePage {
   readonly viewTransactionsLink = this.page.getByRole('link', { name: 'View transactions' });
   readonly nothingSupplied = this.page.getByText('Nothing supplied yet');
   readonly nothingBorrowed = this.page.getByText('Nothing borrowed yet');
+  readonly supplyModal = this.page.getByTestId('Modal');
+  readonly supplyAmountInput = this.page.getByLabel('amount input');
+  readonly signatureProgress = this.supplyModal.getByRole('progressbar');
+  readonly collateralValue = this.yourSuppliesPanel
+    .locator('div')
+    .filter({ hasText: /^Collateral/ })
+    .locator('> p')
+    .filter({ hasText: /\$/ });
 
   async open(): Promise<void> {
     await test.step('Open the dashboard in test mode', async () => {
@@ -126,6 +134,43 @@ export class DashboardPage extends BasePage {
   async openTransactions(): Promise<void> {
     await test.step('Open transaction history', async () => {
       await this.viewTransactionsLink.click();
+    });
+  }
+
+  supplyAssetRow(symbol: string): Locator {
+    return this.page.getByTestId(`dashboardSupplyListItem_${symbol.toUpperCase()}`);
+  }
+
+  suppliedAssetRow(symbol: string): Locator {
+    return this.page.getByTestId(new RegExp(`^dashboardSuppliedListItem_${symbol.toUpperCase()}(_|$)`));
+  }
+
+  supplyAction(symbol: string, action: 'Approve' | 'Supply'): Locator {
+    const name = action === 'Approve' ? `Approve ${symbol} to continue` : `Supply ${symbol}`;
+    return this.supplyModal.getByRole('button', { name, exact: true });
+  }
+
+  async openAssetSupply(symbol: string): Promise<void> {
+    await test.step(`Open supply for ${symbol}`, async () => {
+      await this.supplyAssetRow(symbol).getByRole('button', { name: 'Supply', exact: true }).click();
+    });
+  }
+
+  async enterSupplyAmount(amount: string): Promise<void> {
+    await test.step(`Enter ${amount}`, async () => {
+      await this.supplyAmountInput.fill(amount);
+    });
+  }
+
+  async submitSupplyAction(symbol: string, action: 'Approve' | 'Supply'): Promise<void> {
+    await test.step(`${action} ${symbol}`, async () => {
+      await this.supplyAction(symbol, action).click();
+    });
+  }
+
+  async finishSupply(): Promise<void> {
+    await test.step('Confirm the supply is done', async () => {
+      await this.supplyModal.getByRole('button', { name: 'Done', exact: true }).click();
     });
   }
 
