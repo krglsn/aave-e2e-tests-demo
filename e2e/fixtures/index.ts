@@ -1,5 +1,7 @@
 import { setTimeout } from 'node:timers/promises';
 import { expect, type Page, type Response } from '@playwright/test';
+import { connectChain, type ChainClient } from '../blockchain/index.js';
+import { type NetworkName } from '../config/networks.js';
 import { getPageUrl } from '../config/page-url.js';
 import { DashboardPage } from '../pages/dashboard.page.js';
 import { MarketsPage } from '../pages/markets.page.js';
@@ -14,7 +16,19 @@ type Fixtures = {
   marketsPage: MarketsPage;
 };
 
-export const test = base.extend<Fixtures>({
+type BlockchainFixtures = {
+  network: NetworkName;
+  blockchain: ChainClient;
+};
+
+export const test = base.extend<Fixtures, BlockchainFixtures>({
+  network: ['baseSepolia', { option: true, scope: 'worker' }],
+  blockchain: [
+    async ({ network }, use) => {
+      await use(await connectChain(network));
+    },
+    { scope: 'worker' },
+  ],
   page: async ({ page }, use) => {
     await page.addInitScript(() => {
       // Aave hides the analytics banner once this choice has been recorded.
