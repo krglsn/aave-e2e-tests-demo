@@ -3,6 +3,7 @@ import { test as base, type Page } from '@playwright/test';
 export const testWallet1 = '0x7b697Bf94E3fa3559Ee3fbc0389D942b7230Da54';
 export const testWallet2 = '0xf9b4B50794393C4870956B73531AFC83CBc7436b';
 const defaultChainId = 1;
+export const otherWalletChainId = 10;
 
 type WalletAction = 'connect' | 'disconnect' | 'reject';
 
@@ -18,6 +19,7 @@ export type MockWallet = {
   disconnect(): Promise<void>;
   reject(): Promise<void>;
   switchAccount(address: string): Promise<void>;
+  switchChain(chainId: number): Promise<void>;
 };
 
 type WalletFixtures = {
@@ -32,6 +34,7 @@ declare global {
       disconnect(): void;
       reject(): void;
       switchAccount(address: string): void;
+      switchChain(chainId: string): void;
     };
   }
 }
@@ -139,6 +142,11 @@ class Eip1193Wallet implements MockWallet {
             localStorage.setItem(storageKey, next);
             emit('accountsChanged', accounts.slice());
           },
+          switchChain(next: string) {
+            currentChainId = next;
+            localStorage.setItem(chainKey, next);
+            emit('chainChanged', currentChainId);
+          },
           reject() {
             const queued = pending.splice(0);
             if (!queued.length) {
@@ -183,6 +191,14 @@ class Eip1193Wallet implements MockWallet {
       await this.page.evaluate((next) => {
         window.__mockWallet?.switchAccount(next);
       }, address);
+    });
+  }
+
+  switchChain(chainId: number): Promise<void> {
+    return base.step('Switch the mocked wallet network', async () => {
+      await this.page.evaluate((next) => {
+        window.__mockWallet?.switchChain(next);
+      }, toHexChainId(chainId));
     });
   }
 

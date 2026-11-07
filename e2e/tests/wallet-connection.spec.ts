@@ -1,5 +1,5 @@
 import { expect, test } from '../fixtures/index.js';
-import { testWallet2 } from '../fixtures/wallet.fixture.js';
+import { otherWalletChainId, testWallet2 } from '../fixtures/wallet.fixture.js';
 
 test.describe('wallet connection', { tag: '@wallet connection' }, () => {
   test('connect and confirm', {
@@ -61,6 +61,27 @@ test.describe('wallet connection', { tag: '@wallet connection' }, () => {
     await wallet.connect();
 
     await expect(unauthorisedAavePage.accountButton(wallet.address)).toBeVisible();
+  });
+
+  test('change network in the wallet', {
+    annotation: { type: 'Test Id', description: 'WC-006' },
+  }, async ({ unauthorisedAavePage, wallet }) => {
+    await unauthorisedAavePage.open();
+    await unauthorisedAavePage.openWalletSelection();
+    await unauthorisedAavePage.chooseMetaMask();
+    await wallet.connect();
+    await unauthorisedAavePage.openConnectedWallet(wallet.address);
+
+    await expect(unauthorisedAavePage.connectedAccountHeading(wallet.address)).toBeVisible();
+    await expect(unauthorisedAavePage.connectedWalletDialog).toContainText('AVAX');
+
+    await wallet.switchChain(otherWalletChainId);
+
+    await expect(unauthorisedAavePage.accountButton(wallet.address)).toBeVisible();
+    await expect(unauthorisedAavePage.connectWalletButton).toBeHidden();
+    await expect(unauthorisedAavePage.connectedAccountHeading(wallet.address)).toBeVisible();
+    await expect(unauthorisedAavePage.connectedWalletDialog).toContainText('AVAX');
+    await expect(unauthorisedAavePage.walletRejectionMessage).toHaveCount(0);
   });
 
   test('change account on connected wallet', {
