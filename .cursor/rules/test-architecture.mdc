@@ -39,3 +39,13 @@ alwaysApply: true
 - Keep methods small and focused.
 - Avoid excessive inheritance.
 - Do not create abstractions for one-time operations.
+
+# Naming and annotations
+
+- Refer to test plan spreadsheet set through TEST_PLAN_SPREADSHEET in .env
+- Name test as Test Case name
+- Use playwright annotation to specify Test Id for the test
+- Set feature name in test.descibe() and in Playwright tags
+- Test should verify everything specified in "Expected" column of the spreadsheet 
+- Automate only test cases in "to automate" status. Ingore all the rest statuses.
+- When test case automated and confirmed passed then change it's status in the spreadsheet from "to automate" to "automated".

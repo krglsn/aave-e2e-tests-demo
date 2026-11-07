@@ -13,7 +13,10 @@ export class UnauthorisedAavePage extends BasePage {
   readonly settingsMenu = this.page.getByRole('menu', { name: 'settings' });
   readonly testModeSwitch = this.settingsMenu.getByRole('menuitem', { name: 'Test Mode' }).getByRole('checkbox');
   readonly metaMaskButton = this.page.getByRole('button', { name: 'MetaMask' });
-  readonly connectionRequest = this.page.getByText('Requesting Connection');
+  readonly walletSelectionDialog = this.page.getByRole('dialog').filter({ hasText: 'select a wallet' });
+  readonly closeWalletSelectionButton = this.page.getByRole('button', { name: 'Close' });
+  readonly retryWalletConnectionButton = this.page.getByRole('button', { name: 'Retry' });
+  readonly walletRejectionMessage = this.page.getByText('You cancelled the request.');
 
   get url(): string {
     return getPageUrl();
@@ -35,10 +38,27 @@ export class UnauthorisedAavePage extends BasePage {
     });
   }
 
+  async openWalletSelection(): Promise<void> {
+    await test.step('Open wallet selection', async () => {
+      await this.connectWalletButton.click();
+    });
+  }
+
   async chooseMetaMask(): Promise<void> {
     await test.step('Choose MetaMask', async () => {
-      await this.connectWalletButton.click();
       await this.metaMaskButton.click();
+    });
+  }
+
+  async retryWalletConnection(): Promise<void> {
+    await test.step('Retry the wallet connection', async () => {
+      await this.retryWalletConnectionButton.click();
+    });
+  }
+
+  async closeWalletSelection(): Promise<void> {
+    await test.step('Close wallet selection', async () => {
+      await this.closeWalletSelectionButton.click();
     });
   }
 
