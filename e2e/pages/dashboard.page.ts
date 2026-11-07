@@ -8,6 +8,8 @@ export class DashboardPage extends BasePage {
   readonly netWorthValue = this.metricValue(/^Net worth\s*\$\s*[\d.,]+$/);
   readonly netApy = this.metric('Net APY');
   readonly netApyValue = this.metricValue(/^Net APY\s*-?[\d.]+\s*%$/);
+  readonly healthFactor = this.metric('Health factor');
+  readonly healthFactorValue = this.page.getByTestId('HealthFactorTopPannel').getByRole('paragraph');
   readonly availableRewards = this.metric('Available rewards');
   readonly availableRewardsValue = this.page.getByTestId('Claim_Value');
 

@@ -13,6 +13,7 @@ const rateLimitStatus = 429;
 
 type Fixtures = {
   unauthorisedAavePage: UnauthorisedAavePage;
+  connectedWalletPage: UnauthorisedAavePage;
   dashboardPage: DashboardPage;
   marketsPage: MarketsPage;
   wallet1: Wallet1;
@@ -45,6 +46,13 @@ export const test = base.extend<Fixtures, BlockchainFixtures>({
   },
   unauthorisedAavePage: async ({ page }, use) => {
     await use(new UnauthorisedAavePage(page));
+  },
+  connectedWalletPage: async ({ unauthorisedAavePage, wallet }, use) => {
+    await unauthorisedAavePage.open();
+    await unauthorisedAavePage.openWalletSelection();
+    await unauthorisedAavePage.chooseMetaMask();
+    await wallet.connect();
+    await use(unauthorisedAavePage);
   },
   dashboardPage: async ({ page }, use) => {
     await use(new DashboardPage(page));

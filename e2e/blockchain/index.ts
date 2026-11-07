@@ -7,6 +7,7 @@ export {
 } from './aave-user.js';
 export {
   connectChain,
+  netWorth,
   type ChainClient,
   type TokenDetails,
   type TokenReader,

@@ -13,6 +13,14 @@ import {
 import { erc20Abi } from './erc20.js';
 import { toChainAmount, type ChainAmount } from './units.js';
 
+/** Collateral minus debt, both in Aave base currency. */
+export function netWorth(account: UserAccountData): ChainAmount {
+  return toChainAmount(
+    account.totalCollateral.raw - account.totalDebt.raw,
+    account.totalCollateral.decimals,
+  );
+}
+
 export type TokenDetails = {
   symbol: string;
   name: string;
