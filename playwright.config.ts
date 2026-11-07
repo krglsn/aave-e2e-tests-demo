@@ -17,6 +17,7 @@ export default defineConfig({
   use: {
     ...desktopChrome,
     baseURL,
+    testIdAttribute: 'data-cy',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

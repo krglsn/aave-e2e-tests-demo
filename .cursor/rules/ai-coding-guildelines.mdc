@@ -17,10 +17,12 @@ alwaysApply: true
 2. Identify relevant user flows and edge cases.
 3. Inspect existing test infrastructure.
 4. Propose a minimal implementation approach.
-5. Implement the tests.
-6. Run the relevant tests.
-7. Review failures and fix actual issues.
-8. Summarize changes and remaining limitations.
+5. Connect to existing browser to find locators and analyzer pages/requests structures.
+6. If you cannot connect to the browser, stop and report error asking user to launch the browser properly.
+7. Implement the tests.
+8. Run the relevant tests.
+9. Review failures and fix actual issues.
+10. Summarize changes and remaining limitations.
 
 # Code modification rules
 

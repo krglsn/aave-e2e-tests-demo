@@ -2,8 +2,6 @@ import { test, type Locator } from '@playwright/test';
 import { getPageUrl } from '../config/page-url.js';
 import { BasePage } from './base.page.js';
 
-const testnetsEnabledKey = 'testnetsEnabled';
-
 export class UnauthorisedAavePage extends BasePage {
   protected readonly path = new URL(getPageUrl()).pathname;
 
@@ -27,10 +25,6 @@ export class UnauthorisedAavePage extends BasePage {
 
   async open(): Promise<void> {
     await test.step('Open the unauthorised Aave app in test mode', async () => {
-      // Aave reads Test Mode from this localStorage flag during startup.
-      await this.page.addInitScript((key) => {
-        localStorage.setItem(key, 'true');
-      }, testnetsEnabledKey);
       await super.open();
     });
   }
