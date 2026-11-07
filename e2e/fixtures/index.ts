@@ -7,9 +7,7 @@ type Fixtures = {
 
 export const test = base.extend<Fixtures>({
   unauthorisedAavePage: async ({ page }, use) => {
-    const unauthorisedAavePage = new UnauthorisedAavePage(page);
-    await unauthorisedAavePage.open();
-    await use(unauthorisedAavePage);
+    await use(new UnauthorisedAavePage(page));
   },
 });
 

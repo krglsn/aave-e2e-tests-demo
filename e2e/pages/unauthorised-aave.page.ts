@@ -1,3 +1,4 @@
+import { test } from '@playwright/test';
 import { getPageUrl } from '../config/page-url.js';
 import { BasePage } from './base.page.js';
 
@@ -17,14 +18,18 @@ export class UnauthorisedAavePage extends BasePage {
   }
 
   async open(): Promise<void> {
-    // Aave reads Test Mode from this localStorage flag during startup.
-    await this.page.addInitScript((key) => {
-      localStorage.setItem(key, 'true');
-    }, testnetsEnabledKey);
-    await super.open();
+    await test.step('Open the unauthorised Aave app in test mode', async () => {
+      // Aave reads Test Mode from this localStorage flag during startup.
+      await this.page.addInitScript((key) => {
+        localStorage.setItem(key, 'true');
+      }, testnetsEnabledKey);
+      await super.open();
+    });
   }
 
   async openSettings(): Promise<void> {
-    await this.settingsButton.click();
+    await test.step('Open settings', async () => {
+      await this.settingsButton.click();
+    });
   }
 }

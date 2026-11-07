@@ -28,6 +28,8 @@ Prioritize test reliability, maintainability, readability, and meaningful covera
 - Prefer parameterized tests when testing multiple equivalent scenarios.
 - Cover positive, negative, boundary, and error scenarios where relevant.
 - Assertions must verify actual business behavior, not implementation details.
+- Wrap methods of POM into steps to see clear messages about scenario in the report
+- Avoid using test steps in the code of test, only use them inside POM methods
 
 # Playwright best practices
 

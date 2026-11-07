@@ -5,6 +5,7 @@
     "test": "playwright test",
     "test:desktop-1920": "playwright test --project=desktop-1920",
     "test:desktop-4k": "playwright test --project=desktop-4k",
+    "report": "playwright show-report",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
