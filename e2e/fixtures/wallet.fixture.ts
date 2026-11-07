@@ -1,8 +1,9 @@
 import { test as base, type Page } from '@playwright/test';
+import { getNetwork } from '../config/networks.js';
 
 export const testWallet1 = '0x7b697Bf94E3fa3559Ee3fbc0389D942b7230Da54';
 export const testWallet2 = '0xf9b4B50794393C4870956B73531AFC83CBc7436b';
-const defaultChainId = 1;
+const defaultChainId = getNetwork('baseSepolia').chain.id;
 export const otherWalletChainId = 10;
 
 type WalletAction = 'connect' | 'disconnect' | 'reject';
