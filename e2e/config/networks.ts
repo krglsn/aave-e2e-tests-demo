@@ -30,6 +30,7 @@ const baseSepoliaNetwork = {
     USDT: token('USDT', '0x0a215D8ba66387DCA84B284D18c3B4ec3de6E54a'),
     cbETH: token('cbETH', '0xD171b9694f7A2597Ed006D41f7509aaD4B485c4B'),
     USDC: token('USDC', '0xba50Cd2A20f6DA35D788639E581bca8d0B5d4D5f'),
+    LINK: token('LINK', '0x810d46f9a9027e28f9b01f75e2bdde839da61115'),
     ETH: token('ETH', '0x4200000000000000000000000000000000000006'),
   },
 } satisfies NetworkConfig;

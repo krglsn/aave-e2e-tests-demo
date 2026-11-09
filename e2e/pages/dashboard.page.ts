@@ -1,4 +1,4 @@
-import { test, type Locator } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import { BasePage } from './base.page.js';
 
 export class DashboardPage extends BasePage {
@@ -35,9 +35,18 @@ export class DashboardPage extends BasePage {
   readonly viewTransactionsLink = this.page.getByRole('link', { name: 'View transactions' });
   readonly nothingSupplied = this.page.getByText('Nothing supplied yet');
   readonly nothingBorrowed = this.page.getByText('Nothing borrowed yet');
-  readonly supplyModal = this.page.getByTestId('Modal');
-  readonly supplyAmountInput = this.page.getByLabel('amount input');
-  readonly signatureProgress = this.supplyModal.getByRole('progressbar');
+  readonly actionModal = this.page.getByTestId('Modal');
+  readonly supplyModal = this.actionModal;
+  readonly amountInput = this.page.getByLabel('amount input');
+  readonly supplyAmountInput = this.amountInput;
+  readonly approvalButton = this.actionModal.getByTestId('approvalButton');
+  readonly actionButton = this.actionModal.getByTestId('actionButton');
+  readonly signatureProgress = this.actionModal.getByRole('progressbar');
+  readonly recalculationProgress = this.signatureProgress;
+  readonly transactionCancelled = this.actionModal.getByText('You cancelled the transaction.');
+  readonly liquidationRisk = this.actionModal.getByText(
+    'Borrowing this amount will reduce your health factor and increase risk of liquidation.',
+  );
   readonly collateralValue = this.yourSuppliesPanel
     .locator('div')
     .filter({ hasText: /^Collateral/ })
@@ -145,6 +154,14 @@ export class DashboardPage extends BasePage {
     return this.page.getByTestId(new RegExp(`^dashboardSuppliedListItem_${symbol.toUpperCase()}(_|$)`));
   }
 
+  borrowAssetRow(symbol: string): Locator {
+    return this.page.getByTestId(`dashboardBorrowListItem_${symbol.toUpperCase()}`);
+  }
+
+  borrowedAssetRow(symbol: string): Locator {
+    return this.page.getByTestId(new RegExp(`^dashboardBorrowedListItem_${symbol.toUpperCase()}(_|$)`));
+  }
+
   supplyAction(symbol: string, action: 'Approve' | 'Supply'): Locator {
     const name = action === 'Approve' ? `Approve ${symbol} to continue` : `Supply ${symbol}`;
     return this.supplyModal.getByRole('button', { name, exact: true });
@@ -169,8 +186,104 @@ export class DashboardPage extends BasePage {
   }
 
   async finishSupply(): Promise<void> {
-    await test.step('Confirm the supply is done', async () => {
-      await this.supplyModal.getByRole('button', { name: 'Done', exact: true }).click();
+    await this.finishAction();
+  }
+
+  async openWithdraw(symbol: string): Promise<void> {
+    await test.step(`Open withdraw for ${symbol}`, async () => {
+      await this.suppliedAssetRow(symbol).getByRole('button', { name: 'Withdraw', exact: true }).click();
+    });
+  }
+
+  async openBorrow(symbol: string): Promise<void> {
+    await test.step(`Open borrow for ${symbol}`, async () => {
+      await this.borrowAssetRow(symbol).getByRole('button', { name: 'Borrow', exact: true }).click();
+    });
+  }
+
+  async openRepay(symbol: string): Promise<void> {
+    await test.step(`Open repay for ${symbol}`, async () => {
+      await this.borrowedAssetRow(symbol).getByRole('button', { name: 'Repay', exact: true }).click();
+    });
+  }
+
+  async fillAmount(amount: string): Promise<void> {
+    await test.step(`Enter ${amount}`, async () => {
+      await this.amountInput.first().fill(amount);
+    });
+  }
+
+  async enterWithdrawAmount(amount: string): Promise<void> {
+    await test.step(`Enter ${amount}`, async () => {
+      await this.amountInput.first().fill(amount);
+      await expect(this.recalculationProgress.first()).toBeVisible();
+    });
+  }
+
+  async enteredAmount(): Promise<string> {
+    return this.amountInput.first().inputValue();
+  }
+
+  async chooseMaxAmount(): Promise<void> {
+    await test.step('Enter the maximum amount', async () => {
+      await this.actionModal.getByRole('button', { name: 'Max', exact: true }).click();
+    });
+  }
+
+  async acknowledgeRisks(): Promise<void> {
+    await test.step('Acknowledge the liquidation risk', async () => {
+      await this.actionModal.getByText('I acknowledge the risks involved.').click();
+    });
+  }
+
+  async submitApproval(symbol: string): Promise<void> {
+    await test.step(`Approve ${symbol} to continue`, async () => {
+      await this.approvalButton.click();
+    });
+  }
+
+  async submitModalAction(name: string): Promise<void> {
+    await test.step(name, async () => {
+      await this.actionButton.click();
+    });
+  }
+
+  async finishAction(): Promise<void> {
+    await test.step('Confirm the transaction is done', async () => {
+      await this.actionModal.getByRole('button', { name: 'Done', exact: true }).click();
+    });
+  }
+
+  async overviewValues(label: string, count: number): Promise<string[]> {
+    return test.step(`Read ${label}`, async () => {
+      const lines = (await this.actionModal.innerText()).split('\n').map((line) => line.trim());
+      const start = lines.findIndex((line) => line === label);
+      if (start < 0) throw new Error(`The modal does not show ${label}.`);
+      const values = lines
+        .slice(start + 1)
+        .filter((line) => /^-?\d[\d,]*(?:\.\d+)?$/.test(line));
+      if (values.length < count) {
+        throw new Error(`Expected ${count} ${label} amounts, found ${values.length}.`);
+      }
+      return values.slice(0, count);
+    });
+  }
+
+  projectedHealthFactor(value: string): Locator {
+    return this.actionModal.getByText(value, { exact: true }).last();
+  }
+
+  async editAllowance(mode: 'Limited' | 'Unlimited', amount?: string): Promise<void> {
+    await test.step(`Set a ${mode.toLowerCase()} allowance`, async () => {
+      const value = this.actionModal.getByText(/^Unlimited$|^\d[\d,]*(\.\d+)?$/).last();
+      const rowButton = value.locator('..').getByRole('button');
+      if (await rowButton.count()) {
+        await rowButton.click();
+      } else {
+        await value.locator('../..').getByRole('button').first().click();
+      }
+      await this.page.getByText(mode, { exact: true }).click();
+      if (mode === 'Limited' && amount) await this.amountInput.last().fill(amount);
     });
   }
 
