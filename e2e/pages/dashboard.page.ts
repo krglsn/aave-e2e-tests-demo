@@ -232,7 +232,9 @@ export class DashboardPage extends BasePage {
 
   async acknowledgeRisks(): Promise<void> {
     await test.step('Acknowledge the liquidation risk', async () => {
-      await this.actionModal.getByText('I acknowledge the risks involved.').click();
+      const acknowledgement = this.actionModal.getByText('I acknowledge the risks involved.', { exact: true });
+      await acknowledgement.locator('..').getByRole('checkbox').click();
+      await expect(acknowledgement.locator('..').getByRole('checkbox')).toBeChecked();
     });
   }
 
@@ -275,15 +277,30 @@ export class DashboardPage extends BasePage {
 
   async editAllowance(mode: 'Limited' | 'Unlimited', amount?: string): Promise<void> {
     await test.step(`Set a ${mode.toLowerCase()} allowance`, async () => {
-      const value = this.actionModal.getByText(/^Unlimited$|^\d[\d,]*(\.\d+)?$/).last();
-      const rowButton = value.locator('..').getByRole('button');
-      if (await rowButton.count()) {
-        await rowButton.click();
-      } else {
-        await value.locator('../..').getByRole('button').first().click();
-      }
-      await this.page.getByText(mode, { exact: true }).click();
-      if (mode === 'Limited' && amount) await this.amountInput.last().fill(amount);
+      await this.actionModal.evaluate((root) => {
+        const unlimited = Array.from(root.querySelectorAll('*')).find((element) =>
+          Array.from(element.childNodes).some(
+            (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim() === 'Unlimited',
+          ),
+        );
+        const approval = root.querySelector('[data-cy="approvalButton"]');
+        const pencil = Array.from(root.querySelectorAll('svg')).find((svg) => {
+          if (!unlimited || !approval) return false;
+          const afterLabel = (unlimited.compareDocumentPosition(svg) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+          const beforeApproval = (svg.compareDocumentPosition(approval) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+          return afterLabel && beforeApproval;
+        });
+        const target = pencil?.closest('button') ?? pencil?.parentElement;
+        target?.setAttribute('data-allowance-edit', 'true');
+      });
+      const edit = this.actionModal.locator('[data-allowance-edit="true"]');
+      await expect(edit).toBeVisible();
+      await edit.click();
+      const option = mode === 'Limited' ? 'Exact amount' : 'Unlimited';
+      await this.page.getByText(option, { exact: true }).last().click({ timeout: 8_000 });
+      if (amount) await this.amountInput.last().fill(amount);
+      const save = this.page.getByRole('button', { name: /^(Save|Set|Confirm)$/ });
+      if (await save.count()) await save.first().click();
     });
   }
 

@@ -1,4 +1,5 @@
 import {
+  createPublicClient,
   createWalletClient,
   getAddress,
   hexToBigInt,
@@ -49,7 +50,14 @@ export function createWalletBridge({ address, privateKeyEnv }: WalletBridgeOptio
       const wallet = createWalletClient({ account, chain: network.chain, transport: http(getRpcUrl('baseSepolia')) });
 
       if (requestParams.method === 'eth_sendTransaction') {
-        return wallet.sendTransaction(transactionFor(account.address, requestParams.params));
+        const transaction = transactionFor(account.address, requestParams.params);
+        const publicClient = createPublicClient({ chain: network.chain, transport: http(getRpcUrl('baseSepolia')) });
+        const pendingNonce = await publicClient.getTransactionCount({
+          address: account.address,
+          blockTag: 'pending',
+        });
+        if (transaction.nonce === undefined || transaction.nonce < pendingNonce) transaction.nonce = pendingNonce;
+        return wallet.sendTransaction(transaction);
       }
       if (requestParams.method === 'personal_sign' || requestParams.method === 'eth_sign') {
         return wallet.signMessage({ message: messageFor(requestParams.params) });
