@@ -11,6 +11,7 @@ const borrowAmount = '0.05';
 const repayAmount = '0.1';
 
 test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
+  test.describe.configure({ lock: 'wallet1-position' });
   test('borrow LINK', {
     annotation: { type: 'Test Id', description: 'BR-001' },
   }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {

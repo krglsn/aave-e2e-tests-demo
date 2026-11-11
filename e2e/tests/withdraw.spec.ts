@@ -7,6 +7,7 @@ import { readPoolAction } from '../helpers/protocol.js';
 import type { DashboardPage } from '../pages/dashboard.page.js';
 
 test.describe('Withdraw flow', { tag: '@Withdraw flow' }, () => {
+  test.describe.configure({ lock: 'wallet1-position' });
   test('withdraw 10 USDC', {
     annotation: { type: 'Test Id', description: 'WF-001' },
   }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {

@@ -11,6 +11,7 @@ import type { UnauthorisedAavePage } from '../pages/unauthorised-aave.page.js';
 const settledWithin = 90_000;
 
 test.describe('Supply flow', { tag: '@Supply flow' }, () => {
+  test.describe.configure({ lock: 'wallet1-position' });
   test('supply 10 USDC (permit EIP-712)', {
     annotation: { type: 'Test Id', description: 'SF-001' },
   }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
