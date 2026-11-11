@@ -1,4 +1,4 @@
-import { maxUint256, toRaw } from '../blockchain/index.js';
+import { maxUint256, toHuman, toRaw } from '../blockchain/index.js';
 import type { AaveClient } from '../blockchain/aave-client.js';
 import type { TokenSymbol } from '../config/networks.js';
 
@@ -17,6 +17,7 @@ type Target = {
   symbol: TokenSymbol;
   current: bigint;
   target: bigint;
+  decimals: number;
 };
 
 /**
@@ -25,6 +26,7 @@ type Target = {
  * Allowance is applied last, because supply and repay approve the pool along the way.
  */
 export async function applyPrecondition(client: AaveClient, precondition: Precondition): Promise<void> {
+  console.log(`[precondition] requested ${JSON.stringify(precondition)}`);
   const entries = Object.entries(precondition) as Array<[TokenSymbol, TokenPrecondition]>;
   const supply = await targets(entries, 'supply', (symbol) => client.getSupply(symbol));
   const borrow = await targets(entries, 'borrow', (symbol) => client.getBorrow(symbol));
@@ -32,29 +34,45 @@ export async function applyPrecondition(client: AaveClient, precondition: Precon
   for (const position of borrow) {
     if (position.current <= position.target) continue;
     const repay = position.target === 0n ? maxUint256 : position.current - position.target;
+    logPosition('borrow', position, `repay ${shown(repay, position.decimals)}`);
     await client.repay(position.symbol, repay);
   }
 
   for (const position of supply) {
     if (position.current <= position.target) continue;
     const withdraw = position.target === 0n ? maxUint256 : position.current - position.target;
+    logPosition('supply', position, `withdraw ${shown(withdraw, position.decimals)}`);
     await client.withdraw(position.symbol, withdraw);
   }
 
   for (const position of supply) {
-    if (position.current >= position.target) continue;
+    if (position.current > position.target) continue;
+    const action = position.current === position.target
+      ? 'keep'
+      : `supply ${shown(position.target - position.current, position.decimals)}`;
+    logPosition('supply', position, action);
+    if (position.current === position.target) continue;
     await client.supply(position.symbol, position.target - position.current);
   }
 
   for (const position of borrow) {
-    if (position.current >= position.target) continue;
+    if (position.current > position.target) continue;
+    const action = position.current === position.target
+      ? 'keep'
+      : `borrow ${shown(position.target - position.current, position.decimals)}`;
+    logPosition('borrow', position, action);
+    if (position.current === position.target) continue;
     await client.borrow(position.symbol, position.target - position.current);
   }
 
   for (const [symbol, position] of entries) {
     if (position.approval === undefined) continue;
-    const { decimals } = await client.getSupply(symbol);
-    await client.setAllowance(symbol, allowanceTarget(position.approval, decimals));
+    const current = await client.getAllowance(symbol);
+    const target = allowanceTarget(position.approval, current.decimals);
+    console.log(
+      `[precondition] ${symbol} allowance ${current.human} -> ${shown(target, current.decimals)}`,
+    );
+    await client.setAllowance(symbol, target);
   }
 }
 
@@ -68,9 +86,24 @@ async function targets(
     const amount = position[field];
     if (amount === undefined) continue;
     const current = await read(symbol);
-    positions.push({ symbol, current: current.raw, target: toRaw(amount, current.decimals) });
+    positions.push({
+      symbol,
+      current: current.raw,
+      target: toRaw(amount, current.decimals),
+      decimals: current.decimals,
+    });
   }
   return positions;
+}
+
+function logPosition(field: 'supply' | 'borrow', position: Target, action: string): void {
+  const from = shown(position.current, position.decimals);
+  const to = shown(position.target, position.decimals);
+  console.log(`[precondition] ${position.symbol} ${field} ${from} -> ${to}: ${action}`);
+}
+
+function shown(amount: bigint, decimals: number): string {
+  return amount === maxUint256 ? 'max' : toHuman(amount, decimals);
 }
 
 function allowanceTarget(amount: string, decimals: number): bigint {

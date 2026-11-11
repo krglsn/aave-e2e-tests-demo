@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 import { getNetwork, type TokenSymbol } from '../config/networks.js';
-import { toRaw } from './units.js';
+import { maxUint256 } from './aave-user.js';
+import { toHuman, toRaw } from './units.js';
 import {
   borrowVariable,
   repayVariableDebt,
@@ -41,6 +42,7 @@ export class AaveClient {
 
   async supply(symbol: TokenSymbol, amount: bigint): Promise<void> {
     const balance = await this.wallet.balance(symbol);
+    await this.logAction('supply', symbol, amount, `wallet balance ${balance.human}`);
     if (balance.raw < amount) {
       throw new Error(
         `Cannot supply ${symbol}: the wallet holds ${balance.human} and the increase requires more.`,
@@ -49,20 +51,25 @@ export class AaveClient {
     await supply(this.wallet.address, this.token(symbol), amount);
   }
 
-  withdraw(symbol: TokenSymbol, amount: bigint): Promise<void> {
-    return withdrawSupply(this.wallet.address, this.token(symbol), amount);
+  async withdraw(symbol: TokenSymbol, amount: bigint): Promise<void> {
+    await this.logAction('withdraw', symbol, amount);
+    await withdrawSupply(this.wallet.address, this.token(symbol), amount);
   }
 
-  borrow(symbol: TokenSymbol, amount: bigint): Promise<void> {
-    return borrowVariable(this.wallet.address, this.token(symbol), amount);
+  async borrow(symbol: TokenSymbol, amount: bigint): Promise<void> {
+    await this.logAction('borrow', symbol, amount);
+    await borrowVariable(this.wallet.address, this.token(symbol), amount);
   }
 
-  repay(symbol: TokenSymbol, amount: bigint): Promise<void> {
-    return repayVariableDebt(this.wallet.address, this.token(symbol), amount);
+  async repay(symbol: TokenSymbol, amount: bigint): Promise<void> {
+    await this.logAction('repay', symbol, amount);
+    await repayVariableDebt(this.wallet.address, this.token(symbol), amount);
   }
 
-  setAllowance(symbol: TokenSymbol, amount: bigint): Promise<void> {
-    return setAllowance(this.wallet.address, this.token(symbol), this.pool, amount);
+  async setAllowance(symbol: TokenSymbol, amount: bigint): Promise<void> {
+    const current = await this.getAllowance(symbol);
+    await this.logAction('set allowance', symbol, amount, `current ${current.human}`);
+    await setAllowance(this.wallet.address, this.token(symbol), this.pool, amount);
   }
 
   private reserve(symbol: TokenSymbol) {
@@ -71,6 +78,13 @@ export class AaveClient {
 
   private token(symbol: TokenSymbol) {
     return getNetwork(this.wallet.blockchain.network).tokens[symbol].address;
+  }
+
+  private async logAction(action: string, symbol: TokenSymbol, amount: bigint, detail?: string): Promise<void> {
+    const { decimals } = await this.getSupply(symbol);
+    const shown = amount === maxUint256 ? 'max' : toHuman(amount, decimals);
+    const extra = detail === undefined ? '' : `; ${detail}`;
+    console.log(`[aave] ${action} ${symbol} ${shown}${extra}`);
   }
 
   private async expectAmount(actual: ChainAmount, amount: string, label: string): Promise<void> {
