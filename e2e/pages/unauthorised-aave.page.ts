@@ -6,8 +6,9 @@ export class UnauthorisedAavePage extends BasePage {
   protected readonly path = new URL(getPageUrl()).pathname;
 
   readonly testModeButton = this.page.getByRole('button', { name: 'Test Mode' });
-  readonly connectWalletButton = this.page.getByRole('button', { name: 'Connect Wallet' });
-  readonly settingsButton = this.page.getByRole('button', { name: 'settings' });
+  readonly banner = this.page.getByRole('banner');
+  readonly connectWalletButton = this.banner.getByRole('button', { name: 'Connect Wallet' });
+  readonly settingsButton = this.banner.getByRole('button', { name: 'settings' });
   readonly settingsMenu = this.page.getByRole('menu', { name: 'settings' });
   readonly testModeSwitch = this.settingsMenu.getByRole('menuitem', { name: 'Test Mode' }).getByRole('checkbox');
   readonly metaMaskButton = this.page.getByRole('button', { name: 'MetaMask' });
