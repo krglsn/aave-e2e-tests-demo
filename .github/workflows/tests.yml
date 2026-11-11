@@ -1,0 +1,34 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  playwright:
+    runs-on: self-hosted
+    timeout-minutes: 180
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-jammy
+      options: --ipc=host
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci
+      - run: npx playwright test --reporter=github --reporter=html
+        env:
+          CI: true
+          RPC_URL_BASE_SEPOLIA: ${{ secrets.RPC_URL_BASE_SEPOLIA }}
+          WALLET1_PRIVATE_KEY: ${{ secrets.WALLET1_PRIVATE_KEY }}
+          WALLET2_PRIVATE_KEY: ${{ secrets.WALLET2_PRIVATE_KEY }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+      - if: always()
+        run: chmod -R a+rX "$GITHUB_WORKSPACE"
