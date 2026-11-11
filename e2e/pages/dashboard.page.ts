@@ -44,6 +44,7 @@ export class DashboardPage extends BasePage {
   readonly signatureProgress = this.actionModal.getByRole('progressbar');
   readonly recalculationProgress = this.signatureProgress;
   readonly transactionCancelled = this.actionModal.getByText('You cancelled the transaction.');
+  readonly transactionConfirmed = this.actionModal.getByTestId('txSuccess');
   readonly liquidationRisk = this.actionModal.getByText(
     'Borrowing this amount will reduce your health factor and increase risk of liquidation.',
   );
@@ -250,9 +251,17 @@ export class DashboardPage extends BasePage {
     });
   }
 
+  async expectTransactionConfirmed(): Promise<void> {
+    await test.step('Transaction confirmed', async () => {
+      await expect(this.transactionConfirmed).toBeVisible({ timeout: 90_000 });
+      await expect(this.transactionConfirmed.getByRole('heading', { name: /successfully/i })).toBeVisible();
+    });
+  }
+
   async finishAction(): Promise<void> {
-    await test.step('Confirm the transaction is done', async () => {
+    await test.step('Close the confirmation', async () => {
       await this.actionModal.getByRole('button', { name: 'Done', exact: true }).click();
+      await expect(this.actionModal).toBeHidden();
     });
   }
 

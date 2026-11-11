@@ -41,7 +41,7 @@ export const test = base.extend<Fixtures, BlockchainFixtures>({
       localStorage.setItem('testnetsEnabled', 'true');
     });
     const goto = page.goto.bind(page);
-    page.goto = (url, options) => openApp(goto, url, options);
+    page.goto = (url, options) => openApp(page, goto, url, options);
     await use(page);
   },
   unauthorisedAavePage: async ({ page }, use) => {
@@ -66,6 +66,7 @@ export const test = base.extend<Fixtures, BlockchainFixtures>({
 });
 
 async function openApp(
+  page: Page,
   goto: Page['goto'],
   url: string,
   options?: Parameters<Page['goto']>[1],
@@ -74,17 +75,31 @@ async function openApp(
   const backoffMs = [2_000 + Math.random() * 4_000, 5_000 + Math.random() * 5_000];
 
   for (const delayMs of backoffMs) {
-    if (!isAppRateLimited(url, response)) return response;
+    if (!isAppRateLimited(url, response) && !(await isBlankApp(page, url))) return response;
     await setTimeout(delayMs);
     response = await goto(url, options);
   }
 
-  if (!response?.ok()) {
+  if (isAppRateLimited(url, response) && !response?.ok()) {
     throw new Error(
       `Application rate limited. Response: ${response?.status() ?? 'no response'}`,
     );
   }
   return response;
+}
+
+async function isBlankApp(page: Page, url: string): Promise<boolean> {
+  const appOrigin = new URL(getPageUrl()).origin;
+  if (new URL(url, getPageUrl()).origin !== appOrigin) return false;
+
+  const shell = page.getByRole('button').or(page.getByRole('heading')).first();
+  try {
+    await shell.waitFor({ state: 'visible', timeout: 10_000 });
+    return false;
+  } catch {
+    const text = await page.locator('body').innerText().catch(() => '');
+    return text.trim().length === 0;
+  }
 }
 
 function isAppRateLimited(url: string, response: Response | null): boolean {

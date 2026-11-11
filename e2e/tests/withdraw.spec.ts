@@ -6,8 +6,6 @@ import { expect, test } from '../fixtures/index.js';
 import { readPoolAction } from '../helpers/protocol.js';
 import type { DashboardPage } from '../pages/dashboard.page.js';
 
-const settledWithin = 90_000;
-
 test.describe('Withdraw flow', { tag: '@Withdraw flow' }, () => {
   test('withdraw 10 USDC', {
     annotation: { type: 'Test Id', description: 'WF-001' },
@@ -40,8 +38,7 @@ test.describe('Withdraw flow', { tag: '@Withdraw flow' }, () => {
     expect(action.amount).toBe(amount);
     expect(action.onBehalfOf).toBe(getAddress(wallet1.address));
     await wallet.sign();
-
-    await expect(dashboardPage.actionModal).toContainText(/withdr/i, { timeout: settledWithin });
+    await dashboardPage.expectTransactionConfirmed();
     await dashboardPage.finishAction();
 
     const after = await readPosition(blockchain, wallet1.address, 'USDC');

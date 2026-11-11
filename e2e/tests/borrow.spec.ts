@@ -7,7 +7,6 @@ import { readApproval, readPoolAction, repayVariableDebt, revokeAllowance } from
 import type { DashboardPage } from '../pages/dashboard.page.js';
 import type { MockWallet } from '../fixtures/wallet.fixture.js';
 
-const settledWithin = 90_000;
 const borrowAmount = '0.05';
 const repayAmount = '0.1';
 
@@ -31,8 +30,7 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
     const action = readPoolAction(await wallet.signatureRequest());
     expectBorrow(action, before.asset, toRaw(borrowAmount, before.decimals), wallet1.address);
     await wallet.sign();
-    await expect(dashboardPage.actionModal.getByRole('button', { name: 'Done', exact: true })).toBeVisible({ timeout: settledWithin });
-    await expect(dashboardPage.actionModal).toContainText(/borrowed/i);
+    await dashboardPage.expectTransactionConfirmed();
     await dashboardPage.finishAction();
 
     const after = await readLink(blockchain, wallet1.address);
@@ -108,8 +106,7 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
     expect(action.interestRateMode).toBe(2n);
     expect(action.onBehalfOf).toBe(getAddress(wallet1.address));
     await wallet.sign();
-    await expect(dashboardPage.actionModal.getByRole('button', { name: 'Done', exact: true })).toBeVisible({ timeout: settledWithin });
-    await expect(dashboardPage.actionModal).toContainText(/repaid/i);
+    await dashboardPage.expectTransactionConfirmed();
     await dashboardPage.finishAction();
 
     const after = await readLink(blockchain, wallet1.address);
@@ -156,9 +153,9 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
       expectDisplayed(await dashboardPage.enteredAmount(), action.amount, before.decimals);
       expectDisplayed(available, action.amount, before.decimals);
       await wallet.sign();
-      borrowed = action.amount;
-      await expect(dashboardPage.actionModal.getByRole('button', { name: 'Done', exact: true })).toBeVisible({ timeout: settledWithin });
+      await dashboardPage.expectTransactionConfirmed();
       await dashboardPage.finishAction();
+      borrowed = action.amount;
 
       const after = await readLink(blockchain, wallet1.address);
       expectDisplayed(

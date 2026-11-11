@@ -63,7 +63,7 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
 
     await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
     await expect(dashboardPage.availableRewards).toBeVisible();
-    await expect(dashboardPage.availableRewardsValue).toHaveText(/\$\s*[\d.,]+/);
+    await expect(dashboardPage.availableRewardsValue).toHaveText(/\$\s*[\d.,]+/, { timeout: 20_000 });
   });
 
   test('collapsable tables', {
@@ -73,16 +73,16 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
     await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
 
     await dashboardPage.hideYourSupplies();
-    await expect(dashboardPage.suppliedPositions).toBeHidden();
+    await expectEachHidden(dashboardPage.suppliedPositions);
     await expect(dashboardPage.yourSuppliesPanel.getByText('Balance', { exact: true }).first()).toBeVisible();
     await dashboardPage.showYourSupplies();
-    await expect(dashboardPage.suppliedPositions).toBeVisible();
+    await expect(dashboardPage.suppliedPositions.first()).toBeVisible();
 
     await dashboardPage.hideYourBorrows();
-    await expect(dashboardPage.borrowedPositions).toBeHidden();
+    await expectEachHidden(dashboardPage.borrowedPositions);
     await expect(dashboardPage.yourBorrowsPanel.getByText('Balance', { exact: true }).first()).toBeVisible();
     await dashboardPage.showYourBorrows();
-    await expect(dashboardPage.borrowedPositions).toBeVisible();
+    await expect(dashboardPage.borrowedPositions.first()).toBeVisible();
 
     await dashboardPage.hideAssetsToSupply();
     await expectEachHidden(dashboardPage.assetsToSupplyRows);

@@ -184,7 +184,7 @@ async function supplyAndSign(
   await expect(dashboardPage.signatureProgress).toBeVisible();
   expectSupply(await wallet.signatureRequest(), asset, amount, walletAddress);
   await wallet.sign();
-  await expect(dashboardPage.actionModal).toContainText(/supplied/i, { timeout: settledWithin });
+  await dashboardPage.expectTransactionConfirmed();
   await dashboardPage.finishSupply();
 }
 
