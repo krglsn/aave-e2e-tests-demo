@@ -13,21 +13,21 @@ const settledWithin = 90_000;
 test.describe('Supply flow', { tag: '@Supply flow' }, () => {
   test('supply 10 USDC (permit EIP-712)', {
     annotation: { type: 'Test Id', description: 'SF-001' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain, wallet }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
-    const prepared = await prepareSupply(wallet1.address, 'USDC', blockchain, true);
-    const shown = await openSupply(connectedWalletPage, dashboardPage, wallet1.address, 'USDC');
+    const prepared = await prepareSupply(wallet1Client.address, 'USDC', blockchainClient, true);
+    const shown = await openSupply(connectedWalletPage, dashboardPage, wallet1Client.address, 'USDC');
 
     await dashboardPage.submitSupplyAction('USDC', 'Approve');
     await expect(dashboardPage.signatureProgress).toBeVisible();
     expectApprovalAtLeast(await wallet.signatureRequest(), prepared.pool, prepared.amount);
     await wallet.sign();
 
-    await supplyAndSign(dashboardPage, wallet, 'USDC', prepared.asset, prepared.amount, wallet1.address);
+    await supplyAndSign(dashboardPage, wallet, 'USDC', prepared.asset, prepared.amount, wallet1Client.address);
     await expectSupplied({
       dashboardPage,
-      blockchain,
-      wallet: wallet1.address,
+      blockchain: blockchainClient,
+      wallet: wallet1Client.address,
       symbol: 'USDC',
       ...prepared,
       ...shown,
@@ -36,10 +36,10 @@ test.describe('Supply flow', { tag: '@Supply flow' }, () => {
 
   test('supply USDC and reject approve', {
     annotation: { type: 'Test Id', description: 'SF-002' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain, wallet }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
-    const prepared = await prepareSupply(wallet1.address, 'USDC', blockchain, true);
-    const shown = await openSupply(connectedWalletPage, dashboardPage, wallet1.address, 'USDC');
+    const prepared = await prepareSupply(wallet1Client.address, 'USDC', blockchainClient, true);
+    const shown = await openSupply(connectedWalletPage, dashboardPage, wallet1Client.address, 'USDC');
 
     await dashboardPage.submitSupplyAction('USDC', 'Approve');
     await expect(dashboardPage.signatureProgress).toBeVisible();
@@ -47,15 +47,15 @@ test.describe('Supply flow', { tag: '@Supply flow' }, () => {
     await wallet.reject();
 
     await expect(dashboardPage.transactionCancelled).toBeVisible();
-    await expectUnchanged(dashboardPage, blockchain, wallet1.address, 'USDC', prepared, shown);
+    await expectUnchanged(dashboardPage, blockchainClient, wallet1Client.address, 'USDC', prepared, shown);
   });
 
   test('supply USDC and reject supply', {
     annotation: { type: 'Test Id', description: 'SF-003' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain, wallet }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
-    const prepared = await prepareSupply(wallet1.address, 'USDC', blockchain, true);
-    const shown = await openSupply(connectedWalletPage, dashboardPage, wallet1.address, 'USDC');
+    const prepared = await prepareSupply(wallet1Client.address, 'USDC', blockchainClient, true);
+    const shown = await openSupply(connectedWalletPage, dashboardPage, wallet1Client.address, 'USDC');
 
     await dashboardPage.submitSupplyAction('USDC', 'Approve');
     await expect(dashboardPage.signatureProgress).toBeVisible();
@@ -65,11 +65,11 @@ test.describe('Supply flow', { tag: '@Supply flow' }, () => {
     await expect(dashboardPage.supplyAction('USDC', 'Supply')).toBeEnabled({ timeout: settledWithin });
     await dashboardPage.submitSupplyAction('USDC', 'Supply');
     await expect(dashboardPage.signatureProgress).toBeVisible();
-    expectSupply(await wallet.signatureRequest(), prepared.asset, prepared.amount, wallet1.address);
+    expectSupply(await wallet.signatureRequest(), prepared.asset, prepared.amount, wallet1Client.address);
     await wallet.reject();
 
     await expect(dashboardPage.transactionCancelled).toBeVisible();
-    await expectUnchanged(dashboardPage, blockchain, wallet1.address, 'USDC', prepared, shown);
+    await expectUnchanged(dashboardPage, blockchainClient, wallet1Client.address, 'USDC', prepared, shown);
 
     await dashboardPage.openAssetSupply('USDC');
     await expect(dashboardPage.modalHeading('Supply USDC')).toBeVisible();
@@ -83,11 +83,11 @@ test.describe('Supply flow', { tag: '@Supply flow' }, () => {
       expectApprovalAtLeast(await wallet.signatureRequest(), prepared.pool, prepared.amount);
       await wallet.sign();
     }
-    await supplyAndSign(dashboardPage, wallet, 'USDC', prepared.asset, prepared.amount, wallet1.address);
+    await supplyAndSign(dashboardPage, wallet, 'USDC', prepared.asset, prepared.amount, wallet1Client.address);
     await expectSupplied({
       dashboardPage,
-      blockchain,
-      wallet: wallet1.address,
+      blockchain: blockchainClient,
+      wallet: wallet1Client.address,
       symbol: 'USDC',
       ...prepared,
       ...shown,
@@ -96,19 +96,19 @@ test.describe('Supply flow', { tag: '@Supply flow' }, () => {
 
   test('supply 10 USDT', {
     annotation: { type: 'Test Id', description: 'SF-004' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain, wallet }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
-    const prepared = await prepareSupply(wallet1.address, 'USDT', blockchain, false);
-    await ensureAllowance(wallet1.address, prepared.asset, prepared.pool, prepared.amount);
-    const shown = await openSupply(connectedWalletPage, dashboardPage, wallet1.address, 'USDT');
+    const prepared = await prepareSupply(wallet1Client.address, 'USDT', blockchainClient, false);
+    await ensureAllowance(wallet1Client.address, prepared.asset, prepared.pool, prepared.amount);
+    const shown = await openSupply(connectedWalletPage, dashboardPage, wallet1Client.address, 'USDT');
 
     await expect(dashboardPage.approvalButton).toBeHidden();
     await expect(dashboardPage.supplyAction('USDT', 'Supply')).toBeEnabled();
-    await supplyAndSign(dashboardPage, wallet, 'USDT', prepared.asset, prepared.amount, wallet1.address);
+    await supplyAndSign(dashboardPage, wallet, 'USDT', prepared.asset, prepared.amount, wallet1Client.address);
     await expectSupplied({
       dashboardPage,
-      blockchain,
-      wallet: wallet1.address,
+      blockchain: blockchainClient,
+      wallet: wallet1Client.address,
       symbol: 'USDT',
       ...prepared,
       ...shown,

@@ -13,10 +13,10 @@ const repayAmount = '0.1';
 test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
   test('borrow LINK', {
     annotation: { type: 'Test Id', description: 'BR-001' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain, wallet }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
-    const before = await readLink(blockchain, wallet1.address);
-    await openDashboard(connectedWalletPage, dashboardPage, wallet1.address);
+    const before = await readLink(blockchainClient, wallet1Client.address);
+    await openDashboard(connectedWalletPage, dashboardPage, wallet1Client.address);
     const healthBefore = await dashboardPage.healthFactorValue.innerText();
 
     await dashboardPage.openBorrow('LINK');
@@ -28,12 +28,12 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
     await dashboardPage.submitModalAction('Borrow LINK');
     await expect(dashboardPage.signatureProgress).toBeVisible();
     const action = readPoolAction(await wallet.signatureRequest());
-    expectBorrow(action, before.asset, toRaw(borrowAmount, before.decimals), wallet1.address);
+    expectBorrow(action, before.asset, toRaw(borrowAmount, before.decimals), wallet1Client.address);
     await wallet.sign();
     await dashboardPage.expectTransactionConfirmed();
     await dashboardPage.finishAction();
 
-    const after = await readLink(blockchain, wallet1.address);
+    const after = await readLink(blockchainClient, wallet1Client.address);
     expect(after.debt - before.debt).toBeGreaterThanOrEqual(action.amount);
     expect(after.debt - before.debt - action.amount).toBeLessThan(action.amount / 100n);
     expect(after.account.healthFactor.raw).not.toBe(before.account.healthFactor.raw);
@@ -53,10 +53,10 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
 
   test('reject borrow', {
     annotation: { type: 'Test Id', description: 'BR-002' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain, wallet }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(180_000);
-    const before = await readLink(blockchain, wallet1.address);
-    await openDashboard(connectedWalletPage, dashboardPage, wallet1.address);
+    const before = await readLink(blockchainClient, wallet1Client.address);
+    await openDashboard(connectedWalletPage, dashboardPage, wallet1Client.address);
     const healthBefore = await dashboardPage.healthFactorValue.innerText();
     const netWorthBefore = await dashboardPage.netWorthValue.innerText();
 
@@ -67,11 +67,11 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
     await dashboardPage.submitModalAction('Borrow LINK');
     await expect(dashboardPage.signatureProgress).toBeVisible();
     const action = readPoolAction(await wallet.signatureRequest());
-    expectBorrow(action, before.asset, toRaw(borrowAmount, before.decimals), wallet1.address);
+    expectBorrow(action, before.asset, toRaw(borrowAmount, before.decimals), wallet1Client.address);
     await wallet.reject();
 
     await expect(dashboardPage.transactionCancelled).toBeVisible();
-    const after = await readLink(blockchain, wallet1.address);
+    const after = await readLink(blockchainClient, wallet1Client.address);
     expect(after.balance).toBe(before.balance);
     expect(difference(after.debt, before.debt)).toBeLessThan(10n ** 15n);
     expect(difference(netWorth(after.account).raw, netWorth(before.account).raw)).toBeLessThanOrEqual(1_000_000n);
@@ -82,11 +82,11 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
 
   test('repay LINK', {
     annotation: { type: 'Test Id', description: 'BR-003' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain, wallet }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
-    const before = await readLink(blockchain, wallet1.address);
+    const before = await readLink(blockchainClient, wallet1Client.address);
     const amount = toRaw(repayAmount, before.decimals);
-    await openDashboard(connectedWalletPage, dashboardPage, wallet1.address);
+    await openDashboard(connectedWalletPage, dashboardPage, wallet1Client.address);
 
     await dashboardPage.openRepay('LINK');
     await expect(dashboardPage.modalHeading('Repay LINK')).toBeVisible();
@@ -104,12 +104,12 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
     expect(action.asset).toBe(before.asset);
     expect(action.amount).toBe(amount);
     expect(action.interestRateMode).toBe(2n);
-    expect(action.onBehalfOf).toBe(getAddress(wallet1.address));
+    expect(action.onBehalfOf).toBe(getAddress(wallet1Client.address));
     await wallet.sign();
     await dashboardPage.expectTransactionConfirmed();
     await dashboardPage.finishAction();
 
-    const after = await readLink(blockchain, wallet1.address);
+    const after = await readLink(blockchainClient, wallet1Client.address);
     expect(before.balance - after.balance).toBe(amount);
     expect(difference(before.debt - after.debt, amount)).toBeLessThan(amount / 100n);
     expectDisplayed(projectedDebt, after.debt, before.decimals);
@@ -127,12 +127,12 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
 
   test('max borrow', {
     annotation: { type: 'Test Id', description: 'BR-004' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain, wallet }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(300_000);
-    const before = await readLink(blockchain, wallet1.address);
+    const before = await readLink(blockchainClient, wallet1Client.address);
     let borrowed = 0n;
     try {
-      await openDashboard(connectedWalletPage, dashboardPage, wallet1.address);
+      await openDashboard(connectedWalletPage, dashboardPage, wallet1Client.address);
       await dashboardPage.openBorrow('LINK');
       await dashboardPage.chooseMaxAmount();
       await expect(dashboardPage.liquidationRisk).toBeVisible();
@@ -157,7 +157,7 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
       await dashboardPage.finishAction();
       borrowed = action.amount;
 
-      const after = await readLink(blockchain, wallet1.address);
+      const after = await readLink(blockchainClient, wallet1Client.address);
       expectDisplayed(
         await dashboardPage.healthFactorValue.innerText(),
         after.account.healthFactor.raw,
@@ -168,22 +168,22 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
       const healthColor = await dashboardPage.healthFactorValue.evaluate((element) => getComputedStyle(element).color);
       expect(isLowHealthColor(healthColor)).toBe(true);
     } finally {
-      if (borrowed > 0n) await repayVariableDebt(wallet1.address, before.asset, borrowed);
+      if (borrowed > 0n) await repayVariableDebt(wallet1Client.address, before.asset, borrowed);
     }
   });
 
   test('limited repay allowance', {
     annotation: { type: 'Test Id', description: 'BR-007' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain, wallet }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(180_000);
-    await expectLimitedAllowance(wallet1.address, connectedWalletPage, dashboardPage, blockchain, wallet);
+    await expectLimitedAllowance(wallet1Client.address, connectedWalletPage, dashboardPage, blockchainClient, wallet);
   });
 
   test('unlimited repay allowance', {
     annotation: { type: 'Test Id', description: 'BR-008' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain, wallet }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(180_000);
-    await expectUnlimitedAllowance(wallet1.address, connectedWalletPage, dashboardPage, blockchain, wallet);
+    await expectUnlimitedAllowance(wallet1Client.address, connectedWalletPage, dashboardPage, blockchainClient, wallet);
   });
 });
 

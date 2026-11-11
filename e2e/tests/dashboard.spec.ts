@@ -7,11 +7,11 @@ import type { DashboardPage } from '../pages/dashboard.page.js';
 test.describe('dashboard page', { tag: '@dashboard page' }, () => {
   test('net worth', {
     annotation: { type: 'Test Id', description: 'DP-001' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient }) => {
     await dashboardPage.open();
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
 
-    const worth = netWorth(await blockchain.aaveUser(wallet1.address));
+    const worth = netWorth(await blockchainClient.aaveUser(wallet1Client.address));
     const displayed = await dashboardPage.netWorthValue.innerText();
     const comparison = compareDisplayedAmount(displayed, worth.raw, worth.decimals);
 
@@ -24,11 +24,11 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
 
   test('health factor', {
     annotation: { type: 'Test Id', description: 'DP-002' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient }) => {
     await dashboardPage.open();
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
 
-    const account = await blockchain.aaveUser(wallet1.address);
+    const account = await blockchainClient.aaveUser(wallet1Client.address);
     const displayed = await dashboardPage.healthFactorValue.innerText();
     const comparison = compareDisplayedAmount(
       displayed,
@@ -45,9 +45,9 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
 
   test('net APY', {
     annotation: { type: 'Test Id', description: 'DP-003' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage }) => {
     await dashboardPage.open();
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
 
     const displayed = await dashboardPage.netApyValue.innerText();
     const comparison = compareDisplayedAmount(displayed, 0n, 0);
@@ -58,19 +58,19 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
 
   test('available rewards', {
     annotation: { type: 'Test Id', description: 'DP-004' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage }) => {
     await dashboardPage.open();
 
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
     await expect(dashboardPage.availableRewards).toBeVisible();
     await expect(dashboardPage.availableRewardsValue).toHaveText(/\$\s*[\d.,]+/, { timeout: 20_000 });
   });
 
   test('collapsable tables', {
     annotation: { type: 'Test Id', description: 'DP-005' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage }) => {
     await dashboardPage.open();
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
 
     await dashboardPage.hideYourSupplies();
     await expectEachHidden(dashboardPage.suppliedPositions);
@@ -99,9 +99,9 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
 
   test('sorting', {
     annotation: { type: 'Test Id', description: 'DP-006' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage }) => {
     await dashboardPage.open();
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
 
     await expectSorted(dashboardPage.assetsToSupplyPanel, dashboardPage.assetsToSupplyRows, [
       ['Assets', 'asset'],
@@ -117,9 +117,9 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
 
   test('supply buttons', {
     annotation: { type: 'Test Id', description: 'DP-007' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage }) => {
     await dashboardPage.open();
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
 
     await expect(dashboardPage.suppliedPositions.first()).toBeVisible({ timeout: 20_000 });
     const count = await dashboardPage.suppliedPositions.count();
@@ -147,9 +147,9 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
 
   test('borrow buttons', {
     annotation: { type: 'Test Id', description: 'DP-008' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage }) => {
     await dashboardPage.open();
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
 
     await expect(dashboardPage.borrowedPositions.first()).toBeVisible({ timeout: 20_000 });
     const count = await dashboardPage.borrowedPositions.count();
@@ -172,25 +172,25 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
 
   test('asset supply button', {
     annotation: { type: 'Test Id', description: 'DP-009' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage }) => {
     await dashboardPage.open();
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
     await expectEveryAction(dashboardPage.assetsToSupplyRows, 'Supply', dashboardPage);
   });
 
   test('asset borrow button', {
     annotation: { type: 'Test Id', description: 'DP-010' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage }) => {
     await dashboardPage.open();
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
     await expectEveryAction(dashboardPage.assetsToBorrowRows, 'Borrow', dashboardPage);
   });
 
   test('asset details button', {
     annotation: { type: 'Test Id', description: 'DP-011' },
-  }, async ({ page, wallet1, connectedWalletPage, dashboardPage }) => {
+  }, async ({ page, wallet1Client, connectedWalletPage, dashboardPage }) => {
     await dashboardPage.open();
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
     await expect(dashboardPage.assetsToBorrowRows.first()).toBeVisible({ timeout: 20_000 });
 
     const details = dashboardPage.assetsToBorrowRows.getByRole('link', { name: 'Details', exact: true });
@@ -206,9 +206,9 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
 
   test('view transactions button', {
     annotation: { type: 'Test Id', description: 'DP-012' },
-  }, async ({ page, wallet1, connectedWalletPage, dashboardPage }) => {
+  }, async ({ page, wallet1Client, connectedWalletPage, dashboardPage }) => {
     await dashboardPage.open();
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
 
     await dashboardPage.openTransactions();
     await expect(page).toHaveURL(/\/history\//);
@@ -220,11 +220,11 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
 
   test('check user data displayed', {
     annotation: { type: 'Test Id', description: 'DP-013' },
-  }, async ({ connectedWalletPage, dashboardPage, blockchain }) => {
+  }, async ({ connectedWalletPage, dashboardPage, blockchainClient }) => {
     await dashboardPage.open();
     await expect(connectedWalletPage.accountButton(testWallet2)).toBeVisible();
 
-    const account = await blockchain.aaveUser(testWallet2);
+    const account = await blockchainClient.aaveUser(testWallet2);
     expect(account.totalCollateral.raw).toBe(0n);
     expect(account.totalDebt.raw).toBe(0n);
 

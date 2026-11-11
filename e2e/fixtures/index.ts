@@ -1,37 +1,35 @@
 import { setTimeout } from 'node:timers/promises';
 import { expect, type Page, type Response } from '@playwright/test';
+import { AaveClient } from '../blockchain/aave-client.js';
 import { connectChain, type ChainClient } from '../blockchain/index.js';
+import { WalletClient } from '../blockchain/wallet-client.js';
 import { type NetworkName } from '../config/networks.js';
 import { getPageUrl } from '../config/page-url.js';
 import { DashboardPage } from '../pages/dashboard.page.js';
 import { MarketsPage } from '../pages/markets.page.js';
 import { UnauthorisedAavePage } from '../pages/unauthorised-aave.page.js';
-import { requireWallet1, type Wallet1 } from './wallet1.fixture.js';
-import { test as base } from './wallet.fixture.js';
+import { applyPrecondition, type Precondition } from './precondition.js';
+import { test as base, testWallet1 } from './wallet.fixture.js';
 
 const rateLimitStatus = 429;
 
 type Fixtures = {
+  network: NetworkName;
+  blockchainClient: ChainClient;
   unauthorisedAavePage: UnauthorisedAavePage;
   connectedWalletPage: UnauthorisedAavePage;
   dashboardPage: DashboardPage;
   marketsPage: MarketsPage;
-  wallet1: Wallet1;
+  wallet1Client: WalletClient;
+  aaveClient: AaveClient;
+  preconditionBuilder: (precondition: Precondition) => Promise<AaveClient>;
 };
 
-type BlockchainFixtures = {
-  network: NetworkName;
-  blockchain: ChainClient;
-};
-
-export const test = base.extend<Fixtures, BlockchainFixtures>({
-  network: ['baseSepolia', { option: true, scope: 'worker' }],
-  blockchain: [
-    async ({ network }, use) => {
-      await use(await connectChain(network));
-    },
-    { scope: 'worker' },
-  ],
+export const test = base.extend<Fixtures>({
+  network: ['baseSepolia', { option: true }],
+  blockchainClient: async ({ network }, use) => {
+    await use(await connectChain(network));
+  },
   page: async ({ page }, use) => {
     await page.addInitScript(() => {
       // Aave hides the analytics banner once this choice has been recorded.
@@ -60,8 +58,17 @@ export const test = base.extend<Fixtures, BlockchainFixtures>({
   marketsPage: async ({ page }, use) => {
     await use(new MarketsPage(page));
   },
-  wallet1: async ({ blockchain, wallet }, use) => {
-    await use(await requireWallet1(blockchain, wallet.address));
+  wallet1Client: async ({ blockchainClient }, use) => {
+    await use(new WalletClient(blockchainClient, testWallet1));
+  },
+  aaveClient: async ({ wallet1Client }, use) => {
+    await use(new AaveClient(wallet1Client));
+  },
+  preconditionBuilder: async ({ aaveClient }, use) => {
+    await use(async (precondition) => {
+      await applyPrecondition(aaveClient, precondition);
+      return aaveClient;
+    });
   },
 });
 
@@ -110,3 +117,4 @@ function isAppRateLimited(url: string, response: Response | null): boolean {
 }
 
 export { expect };
+export type { Precondition };

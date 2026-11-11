@@ -41,6 +41,8 @@ export const networks = {
 
 export type NetworkName = keyof typeof networks;
 
+export type TokenSymbol = keyof (typeof networks)['baseSepolia']['tokens'];
+
 export function getNetwork(name: NetworkName): (typeof networks)[NetworkName] {
   return networks[name];
 }

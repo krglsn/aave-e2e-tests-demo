@@ -5,6 +5,7 @@ import {
   getAddress,
   http,
   type Address,
+  type Hex,
 } from 'viem';
 import { maxUint256 } from '../blockchain/index.js';
 import { getNetwork } from '../config/networks.js';
@@ -146,24 +147,61 @@ export async function ensureAllowance(
   await sendApprove(owner, token, spender, maxUint256);
 }
 
-/** Repay variable debt directly, so a max-borrow test can restore the position it opened. */
-export async function repayVariableDebt(owner: string, token: Address, amount: bigint): Promise<void> {
-  const { network, client } = baseSepolia();
+/** Set the pool allowance to an exact amount. A non-zero allowance is cleared first. */
+export async function setAllowance(
+  owner: string,
+  token: Address,
+  spender: Address,
+  amount: bigint,
+): Promise<void> {
+  const allowance = await readAllowance(owner, token, spender);
+  if (allowance === amount) return;
+  if (allowance > 0n) await sendApprove(owner, token, spender, 0n);
+  if (amount > 0n) await sendApprove(owner, token, spender, amount);
+}
+
+const variableRate = 2n;
+
+/** Supply `amount` of `token` from the wallet into the pool. */
+export async function supply(owner: string, token: Address, amount: bigint): Promise<void> {
+  const { network } = baseSepolia();
   await ensureAllowance(owner, token, network.pool, amount);
-  const bridge = createWalletBridge({ address: owner, privateKeyEnv: 'WALLET1_PRIVATE_KEY' });
-  const hash = await bridge.execute({
-    method: 'eth_sendTransaction',
-    params: [{
-      from: owner,
-      to: network.pool,
-      data: encodeFunctionData({
-        abi: poolActions,
-        functionName: 'repay',
-        args: [token, amount, 2n, getAddress(owner)],
-      }),
-    }],
-  });
-  await client.waitForTransactionReceipt({ hash });
+  await sendTransaction(owner, network.pool, encodeFunctionData({
+    abi: poolActions,
+    functionName: 'supply',
+    args: [token, amount, getAddress(owner), 0],
+  }));
+}
+
+/** Withdraw supplied `token` back to the wallet. */
+export async function withdrawSupply(owner: string, token: Address, amount: bigint): Promise<void> {
+  const { network } = baseSepolia();
+  await sendTransaction(owner, network.pool, encodeFunctionData({
+    abi: poolActions,
+    functionName: 'withdraw',
+    args: [token, amount, getAddress(owner)],
+  }));
+}
+
+/** Borrow `token` at a variable rate. Borrowing does not spend an allowance. */
+export async function borrowVariable(owner: string, token: Address, amount: bigint): Promise<void> {
+  const { network } = baseSepolia();
+  await sendTransaction(owner, network.pool, encodeFunctionData({
+    abi: poolActions,
+    functionName: 'borrow',
+    args: [token, amount, variableRate, 0, getAddress(owner)],
+  }));
+}
+
+/** Repay variable debt directly, so a test can restore the borrow it opened. */
+export async function repayVariableDebt(owner: string, token: Address, amount: bigint): Promise<void> {
+  const { network } = baseSepolia();
+  await ensureAllowance(owner, token, network.pool, amount);
+  await sendTransaction(owner, network.pool, encodeFunctionData({
+    abi: poolActions,
+    functionName: 'repay',
+    args: [token, amount, variableRate, getAddress(owner)],
+  }));
 }
 
 export function readApproval(request: SignatureRequest): { spender: Address; amount: bigint } {
@@ -236,15 +274,19 @@ async function readAllowance(owner: string, token: Address, spender: Address): P
 }
 
 async function sendApprove(owner: string, token: Address, spender: Address, amount: bigint): Promise<void> {
+  await sendTransaction(owner, token, encodeFunctionData({
+    abi: erc20Actions,
+    functionName: 'approve',
+    args: [spender, amount],
+  }));
+}
+
+async function sendTransaction(owner: string, to: Address, data: Hex): Promise<void> {
   const { client } = baseSepolia();
   const bridge = createWalletBridge({ address: owner, privateKeyEnv: 'WALLET1_PRIVATE_KEY' });
   const hash = await bridge.execute({
     method: 'eth_sendTransaction',
-    params: [{
-      from: owner,
-      to: token,
-      data: encodeFunctionData({ abi: erc20Actions, functionName: 'approve', args: [spender, amount] }),
-    }],
+    params: [{ from: owner, to, data }],
   });
   await client.waitForTransactionReceipt({ hash });
 }

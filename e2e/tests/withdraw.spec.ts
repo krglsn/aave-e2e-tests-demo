@@ -9,11 +9,11 @@ import type { DashboardPage } from '../pages/dashboard.page.js';
 test.describe('Withdraw flow', { tag: '@Withdraw flow' }, () => {
   test('withdraw 10 USDC', {
     annotation: { type: 'Test Id', description: 'WF-001' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain, wallet }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
-    const position = await readPosition(blockchain, wallet1.address, 'USDC');
+    const position = await readPosition(blockchainClient, wallet1Client.address, 'USDC');
     await dashboardPage.open();
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
     const netWorthBefore = await dashboardPage.netWorthValue.innerText();
     const collateralBefore = await dashboardPage.collateralValue.innerText();
 
@@ -36,12 +36,12 @@ test.describe('Withdraw flow', { tag: '@Withdraw flow' }, () => {
     expect(action.name).toBe('withdraw');
     expect(action.asset).toBe(position.asset);
     expect(action.amount).toBe(amount);
-    expect(action.onBehalfOf).toBe(getAddress(wallet1.address));
+    expect(action.onBehalfOf).toBe(getAddress(wallet1Client.address));
     await wallet.sign();
     await dashboardPage.expectTransactionConfirmed();
     await dashboardPage.finishAction();
 
-    const after = await readPosition(blockchain, wallet1.address, 'USDC');
+    const after = await readPosition(blockchainClient, wallet1Client.address, 'USDC');
     const suppliedDecrease = position.supplied - after.supplied;
     expect(suppliedDecrease).toBeGreaterThanOrEqual(amount - 1n);
     expect(suppliedDecrease).toBeLessThanOrEqual(amount + 1n);
@@ -75,11 +75,11 @@ test.describe('Withdraw flow', { tag: '@Withdraw flow' }, () => {
 
   test('reject withdrawing USDT', {
     annotation: { type: 'Test Id', description: 'WF-002' },
-  }, async ({ wallet1, connectedWalletPage, dashboardPage, blockchain, wallet }) => {
+  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(180_000);
-    const position = await readPosition(blockchain, wallet1.address, 'USDT');
+    const position = await readPosition(blockchainClient, wallet1Client.address, 'USDT');
     await dashboardPage.open();
-    await expect(connectedWalletPage.accountButton(wallet1.address)).toBeVisible();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
     const netWorthBefore = await dashboardPage.netWorthValue.innerText();
     const collateralBefore = await dashboardPage.collateralValue.innerText();
 
@@ -99,7 +99,7 @@ test.describe('Withdraw flow', { tag: '@Withdraw flow' }, () => {
     await wallet.reject();
 
     await expect(dashboardPage.transactionCancelled).toBeVisible();
-    const after = await readPosition(blockchain, wallet1.address, 'USDT');
+    const after = await readPosition(blockchainClient, wallet1Client.address, 'USDT');
     expect(after.supplied).toBe(position.supplied);
     expect(after.balance).toBe(position.balance);
     expect(difference(after.account.totalCollateral.raw, position.account.totalCollateral.raw)).toBeLessThanOrEqual(1_000_000n);
