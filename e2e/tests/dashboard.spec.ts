@@ -63,7 +63,7 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
 
     await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
     await expect(dashboardPage.availableRewards).toBeVisible();
-    await expect(dashboardPage.availableRewardsValue).toHaveText(/\$\s*[\d.,]+/, { timeout: 20_000 });
+    await expect(dashboardPage.availableRewardsValue).toHaveText(/\$\s*[\d.,]+/);
   });
 
   test('collapsable tables', {
@@ -121,7 +121,7 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
     await dashboardPage.open();
     await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
 
-    await expect(dashboardPage.suppliedPositions.first()).toBeVisible({ timeout: 20_000 });
+    await expect(dashboardPage.suppliedPositions.first()).toBeVisible();
     const count = await dashboardPage.suppliedPositions.count();
     expect(count).toBeGreaterThan(0);
     for (let index = 0; index < count; index += 1) {
@@ -151,7 +151,7 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
     await dashboardPage.open();
     await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
 
-    await expect(dashboardPage.borrowedPositions.first()).toBeVisible({ timeout: 20_000 });
+    await expect(dashboardPage.borrowedPositions.first()).toBeVisible();
     const count = await dashboardPage.borrowedPositions.count();
     expect(count).toBeGreaterThan(0);
     for (let index = 0; index < count; index += 1) {
@@ -191,7 +191,7 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
   }, async ({ page, wallet1Client, connectedWalletPage, dashboardPage }) => {
     await dashboardPage.open();
     await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
-    await expect(dashboardPage.assetsToBorrowRows.first()).toBeVisible({ timeout: 20_000 });
+    await expect(dashboardPage.assetsToBorrowRows.first()).toBeVisible();
 
     const details = dashboardPage.assetsToBorrowRows.getByRole('link', { name: 'Details', exact: true });
     const count = await details.count();
@@ -256,7 +256,7 @@ async function expectEveryAction(
   action: 'Supply' | 'Borrow',
   dashboardPage: DashboardPage,
 ): Promise<void> {
-  await expect(rows.first()).toBeVisible({ timeout: 20_000 });
+  await expect(rows.first()).toBeVisible();
   const count = await rows.count();
   expect(count).toBeGreaterThan(0);
   for (let index = 0; index < count; index += 1) {
@@ -276,7 +276,7 @@ async function expectSorted(
   dashboardPage: DashboardPage,
 ): Promise<void> {
   for (const [column, kind] of columns) {
-    await expect(rows.first()).toBeVisible({ timeout: 20_000 });
+    await expect(rows.first()).toBeVisible();
     const before = (await columnValues(rows, kind)).join('|');
     await dashboardPage.sortBy(panel, column);
     try {

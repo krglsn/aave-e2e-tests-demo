@@ -101,7 +101,7 @@ async function isBlankApp(page: Page, url: string): Promise<boolean> {
 
   const shell = page.getByRole('button').or(page.getByRole('heading')).first();
   try {
-    await shell.waitFor({ state: 'visible', timeout: 10_000 });
+    await shell.waitFor({ state: 'visible' });
     return false;
   } catch {
     const text = await page.locator('body').innerText().catch(() => '');

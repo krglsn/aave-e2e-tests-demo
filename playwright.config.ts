@@ -13,6 +13,7 @@ export default defineConfig({
   workers: process.env.CI ? 2 : 1,  // cloudflare rate limit may trigger
   forbidOnly: !!process.env.CI,
   retries: 0,
+  expect: { timeout: 20_000 },
   reporter: [
     ['list'],
     ['html', { open: 'never' }],
@@ -21,6 +22,7 @@ export default defineConfig({
     ...desktopChrome,
     baseURL,
     testIdAttribute: 'data-cy',
+    actionTimeout: 20_000,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

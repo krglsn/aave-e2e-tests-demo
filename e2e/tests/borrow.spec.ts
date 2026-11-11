@@ -65,7 +65,7 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
     await dashboardPage.openBorrow('LINK');
     await dashboardPage.fillAmount(borrowAmount);
     await acceptRiskIfShown(dashboardPage);
-    await expect(dashboardPage.actionButton).toBeEnabled({ timeout: 20_000 });
+    await expect(dashboardPage.actionButton).toBeEnabled();
     await dashboardPage.submitModalAction('Borrow LINK');
     await expect(dashboardPage.signatureProgress).toBeVisible();
     const action = readPoolAction(await wallet.signatureRequest());
@@ -149,7 +149,7 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
       const [available] = await dashboardPage.overviewValues('Available', 1);
 
       await dashboardPage.acknowledgeRisks();
-      await expect(dashboardPage.actionButton).toBeEnabled({ timeout: 15_000 });
+      await expect(dashboardPage.actionButton).toBeEnabled();
       await dashboardPage.submitModalAction('Borrow LINK');
       await expect(dashboardPage.signatureProgress).toBeVisible();
       const action = readPoolAction(await wallet.signatureRequest());
@@ -248,7 +248,7 @@ async function acceptRiskIfShown(dashboardPage: DashboardPage): Promise<void> {
     if (await dashboardPage.liquidationRisk.isVisible()) return 'risk';
     if (await dashboardPage.actionButton.isEnabled()) return 'ready';
     return '';
-  }, { timeout: 20_000 }).not.toBe('');
+  }).not.toBe('');
   if (await dashboardPage.liquidationRisk.isVisible()) await dashboardPage.acknowledgeRisks();
 }
 
@@ -262,7 +262,7 @@ async function approveIfRequired(
     if (await dashboardPage.approvalButton.isVisible()) return 'approve';
     if (await dashboardPage.actionButton.isEnabled()) return 'ready';
     return '';
-  }, { timeout: 20_000 }).not.toBe('');
+  }).not.toBe('');
   if (!(await dashboardPage.approvalButton.isVisible())) return;
   await dashboardPage.submitApproval('LINK');
   await expect(dashboardPage.signatureProgress).toBeVisible();

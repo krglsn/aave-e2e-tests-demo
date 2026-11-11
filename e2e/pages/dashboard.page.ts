@@ -253,7 +253,7 @@ export class DashboardPage extends BasePage {
 
   async expectTransactionConfirmed(): Promise<void> {
     await test.step('Transaction confirmed', async () => {
-      await expect(this.transactionConfirmed).toBeVisible({ timeout: 90_000 });
+      await expect(this.transactionConfirmed).toBeVisible({ timeout: 30_000 });
       await expect(this.transactionConfirmed.getByRole('heading', { name: /successfully/i })).toBeVisible();
     });
   }
@@ -306,7 +306,7 @@ export class DashboardPage extends BasePage {
       await expect(edit).toBeVisible();
       await edit.click();
       const option = mode === 'Limited' ? 'Exact amount' : 'Unlimited';
-      await this.page.getByText(option, { exact: true }).last().click({ timeout: 8_000 });
+      await this.page.getByText(option, { exact: true }).last().click();
       if (amount) await this.amountInput.last().fill(amount);
       const save = this.page.getByRole('button', { name: /^(Save|Set|Confirm)$/ });
       if (await save.count()) await save.first().click();
