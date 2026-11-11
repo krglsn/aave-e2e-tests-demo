@@ -49,10 +49,10 @@ test.describe('dashboard page', { tag: '@dashboard page' }, () => {
     await dashboardPage.open();
     await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
 
+    await expect(dashboardPage.netApyValue).toHaveText(/<?\s*-?[\d.]+\s*%/);
     const displayed = await dashboardPage.netApyValue.innerText();
     const comparison = compareDisplayedAmount(displayed, 0n, 0);
 
-    await expect(dashboardPage.netApy).toBeVisible();
     expect(comparison.displayedUnits, displayed).not.toBe(0n);
   });
 
