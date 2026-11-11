@@ -9,8 +9,9 @@ import type { DashboardPage } from '../pages/dashboard.page.js';
 test.describe('Withdraw flow', { tag: '@Withdraw flow' }, () => {
   test('withdraw 10 USDC', {
     annotation: { type: 'Test Id', description: 'WF-001' },
-  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+  }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
+    await preconditionBuilder({ USDC: { supply: '100' }, USDT: { supply: '100' } });
     const position = await readPosition(blockchainClient, wallet1Client.address, 'USDC');
     await dashboardPage.open();
     await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
@@ -75,8 +76,9 @@ test.describe('Withdraw flow', { tag: '@Withdraw flow' }, () => {
 
   test('reject withdrawing USDT', {
     annotation: { type: 'Test Id', description: 'WF-002' },
-  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+  }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(180_000);
+    await preconditionBuilder({ USDT: { supply: '100' }, USDC: { supply: '100' } });
     const position = await readPosition(blockchainClient, wallet1Client.address, 'USDT');
     await dashboardPage.open();
     await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();

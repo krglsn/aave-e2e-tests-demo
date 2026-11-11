@@ -4,7 +4,7 @@ import type { ChainClient } from '../blockchain/index.js';
 import { getNetwork } from '../config/networks.js';
 import { expect, test } from '../fixtures/index.js';
 import type { MockWallet } from '../fixtures/wallet.fixture.js';
-import { ensureAllowance, readApproval, readPoolAction, revokeAllowance } from '../helpers/protocol.js';
+import { readApproval, readPoolAction } from '../helpers/protocol.js';
 import type { DashboardPage } from '../pages/dashboard.page.js';
 import type { UnauthorisedAavePage } from '../pages/unauthorised-aave.page.js';
 
@@ -13,9 +13,10 @@ const settledWithin = 90_000;
 test.describe('Supply flow', { tag: '@Supply flow' }, () => {
   test('supply 10 USDC (permit EIP-712)', {
     annotation: { type: 'Test Id', description: 'SF-001' },
-  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+  }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
-    const prepared = await prepareSupply(wallet1Client.address, 'USDC', blockchainClient, true);
+    await preconditionBuilder({ USDC: { supply: '0', approval: 'none' } });
+    const prepared = await prepareSupply(wallet1Client.address, 'USDC', blockchainClient);
     const shown = await openSupply(connectedWalletPage, dashboardPage, wallet1Client.address, 'USDC');
 
     await dashboardPage.submitSupplyAction('USDC', 'Approve');
@@ -36,9 +37,10 @@ test.describe('Supply flow', { tag: '@Supply flow' }, () => {
 
   test('supply USDC and reject approve', {
     annotation: { type: 'Test Id', description: 'SF-002' },
-  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+  }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
-    const prepared = await prepareSupply(wallet1Client.address, 'USDC', blockchainClient, true);
+    await preconditionBuilder({ USDC: { supply: '0', approval: 'none' } });
+    const prepared = await prepareSupply(wallet1Client.address, 'USDC', blockchainClient);
     const shown = await openSupply(connectedWalletPage, dashboardPage, wallet1Client.address, 'USDC');
 
     await dashboardPage.submitSupplyAction('USDC', 'Approve');
@@ -52,9 +54,10 @@ test.describe('Supply flow', { tag: '@Supply flow' }, () => {
 
   test('supply USDC and reject supply', {
     annotation: { type: 'Test Id', description: 'SF-003' },
-  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+  }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
-    const prepared = await prepareSupply(wallet1Client.address, 'USDC', blockchainClient, true);
+    await preconditionBuilder({ USDC: { supply: '0', approval: 'none' } });
+    const prepared = await prepareSupply(wallet1Client.address, 'USDC', blockchainClient);
     const shown = await openSupply(connectedWalletPage, dashboardPage, wallet1Client.address, 'USDC');
 
     await dashboardPage.submitSupplyAction('USDC', 'Approve');
@@ -96,10 +99,10 @@ test.describe('Supply flow', { tag: '@Supply flow' }, () => {
 
   test('supply 10 USDT', {
     annotation: { type: 'Test Id', description: 'SF-004' },
-  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+  }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
-    const prepared = await prepareSupply(wallet1Client.address, 'USDT', blockchainClient, false);
-    await ensureAllowance(wallet1Client.address, prepared.asset, prepared.pool, prepared.amount);
+    await preconditionBuilder({ USDT: { supply: '100', approval: '100' } });
+    const prepared = await prepareSupply(wallet1Client.address, 'USDT', blockchainClient);
     const shown = await openSupply(connectedWalletPage, dashboardPage, wallet1Client.address, 'USDT');
 
     await expect(dashboardPage.approvalButton).toBeHidden();
@@ -135,7 +138,6 @@ async function prepareSupply(
   walletAddress: string,
   symbol: 'USDC' | 'USDT',
   blockchain: ChainClient,
-  clearApproval: boolean,
 ): Promise<PreparedSupply> {
   const network = getNetwork('baseSepolia');
   const asset = network.tokens[symbol].address;
@@ -143,7 +145,6 @@ async function prepareSupply(
   const beforeAccount = await blockchain.aaveUser(walletAddress);
   const beforeSupplied = (await blockchain.aaveReserve(walletAddress, symbol)).supplied.raw;
   const beforeBalance = (await blockchain.token(symbol).balanceOf(walletAddress)).raw;
-  if (clearApproval) await revokeAllowance(walletAddress, asset, network.pool);
   return {
     asset,
     pool: network.pool,

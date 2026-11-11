@@ -3,7 +3,7 @@ import { compareDisplayedAmount, maxUint256, netWorth, toRaw } from '../blockcha
 import type { ChainClient } from '../blockchain/index.js';
 import { getNetwork } from '../config/networks.js';
 import { expect, test } from '../fixtures/index.js';
-import { readApproval, readPoolAction, repayVariableDebt, revokeAllowance } from '../helpers/protocol.js';
+import { readApproval, readPoolAction, repayVariableDebt } from '../helpers/protocol.js';
 import type { DashboardPage } from '../pages/dashboard.page.js';
 import type { MockWallet } from '../fixtures/wallet.fixture.js';
 
@@ -13,8 +13,9 @@ const repayAmount = '0.1';
 test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
   test('borrow LINK', {
     annotation: { type: 'Test Id', description: 'BR-001' },
-  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+  }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
+    await preconditionBuilder({ USDC: { supply: '100' }, LINK: { borrow: '0' } });
     const before = await readLink(blockchainClient, wallet1Client.address);
     await openDashboard(connectedWalletPage, dashboardPage, wallet1Client.address);
     const healthBefore = await dashboardPage.healthFactorValue.innerText();
@@ -53,8 +54,9 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
 
   test('reject borrow', {
     annotation: { type: 'Test Id', description: 'BR-002' },
-  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+  }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(180_000);
+    await preconditionBuilder({ USDC: { supply: '100' }, LINK: { borrow: '0' } });
     const before = await readLink(blockchainClient, wallet1Client.address);
     await openDashboard(connectedWalletPage, dashboardPage, wallet1Client.address);
     const healthBefore = await dashboardPage.healthFactorValue.innerText();
@@ -82,8 +84,10 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
 
   test('repay LINK', {
     annotation: { type: 'Test Id', description: 'BR-003' },
-  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+  }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(240_000);
+    await expectAnySupply(blockchainClient, wallet1Client.address);
+    await preconditionBuilder({ LINK: { borrow: '1' } });
     const before = await readLink(blockchainClient, wallet1Client.address);
     const amount = toRaw(repayAmount, before.decimals);
     await openDashboard(connectedWalletPage, dashboardPage, wallet1Client.address);
@@ -127,8 +131,10 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
 
   test('max borrow', {
     annotation: { type: 'Test Id', description: 'BR-004' },
-  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+  }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(300_000);
+    await expectAnySupply(blockchainClient, wallet1Client.address);
+    await preconditionBuilder({ LINK: { borrow: '1' } });
     const before = await readLink(blockchainClient, wallet1Client.address);
     let borrowed = 0n;
     try {
@@ -174,15 +180,17 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
 
   test('limited repay allowance', {
     annotation: { type: 'Test Id', description: 'BR-007' },
-  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+  }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(180_000);
+    await preconditionBuilder({ LINK: { borrow: '1', approval: 'none' } });
     await expectLimitedAllowance(wallet1Client.address, connectedWalletPage, dashboardPage, blockchainClient, wallet);
   });
 
   test('unlimited repay allowance', {
     annotation: { type: 'Test Id', description: 'BR-008' },
-  }, async ({ wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+  }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
     test.setTimeout(180_000);
+    await preconditionBuilder({ LINK: { borrow: '1', approval: 'none' } });
     await expectUnlimitedAllowance(wallet1Client.address, connectedWalletPage, dashboardPage, blockchainClient, wallet);
   });
 });
@@ -195,7 +203,6 @@ async function expectLimitedAllowance(
   wallet: MockWallet,
 ): Promise<void> {
   const position = await readLink(blockchain, walletAddress);
-  await revokeAllowance(walletAddress, position.asset, position.pool);
   await openDashboard(connectedWalletPage, dashboardPage, walletAddress);
   await openRepay(dashboardPage);
   await dashboardPage.fillAmount(repayAmount);
@@ -217,7 +224,6 @@ async function expectUnlimitedAllowance(
   wallet: MockWallet,
 ): Promise<void> {
   const position = await readLink(blockchain, walletAddress);
-  await revokeAllowance(walletAddress, position.asset, position.pool);
   await openDashboard(connectedWalletPage, dashboardPage, walletAddress);
   await openRepay(dashboardPage);
   await dashboardPage.fillAmount(repayAmount);
@@ -277,6 +283,11 @@ function expectBorrow(
   expect(action.amount).toBe(amount);
   expect(action.interestRateMode).toBe(2n);
   expect(action.onBehalfOf).toBe(getAddress(walletAddress));
+}
+
+async function expectAnySupply(blockchain: ChainClient, wallet: string): Promise<void> {
+  const account = await blockchain.aaveUser(wallet);
+  expect(account.totalCollateral.raw, 'Borrowing needs some supplied collateral.').toBeGreaterThan(0n);
 }
 
 async function openDashboard(
