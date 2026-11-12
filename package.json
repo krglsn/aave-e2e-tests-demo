@@ -1,6 +1,7 @@
 {
   "name": "aave-playwright-demo",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "test": "playwright test",
     "test:1920": "playwright test --project=desktop-1920",
