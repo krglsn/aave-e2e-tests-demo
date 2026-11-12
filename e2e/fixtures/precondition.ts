@@ -20,6 +20,9 @@ type Target = {
   decimals: number;
 };
 
+/** Aave can mint an aToken balance a few raw units under the supplied amount. Supplying that gap reverts. */
+const roundingDust = 5n;
+
 /**
  * Moves the wallet to the requested supply, variable borrow, and pool allowance.
  * Repay excess debt before withdrawing collateral, and add collateral before borrowing more.
@@ -32,37 +35,35 @@ export async function applyPrecondition(client: AaveClient, precondition: Precon
   const borrow = await targets(entries, 'borrow', (symbol) => client.getBorrow(symbol));
 
   for (const position of borrow) {
-    if (position.current <= position.target) continue;
+    if (position.current <= position.target || closeEnough(position)) continue;
     const repay = position.target === 0n ? maxUint256 : position.current - position.target;
     logPosition('borrow', position, `repay ${shown(repay, position.decimals)}`);
     await client.repay(position.symbol, repay);
   }
 
   for (const position of supply) {
-    if (position.current <= position.target) continue;
+    if (position.current <= position.target || closeEnough(position)) continue;
     const withdraw = position.target === 0n ? maxUint256 : position.current - position.target;
     logPosition('supply', position, `withdraw ${shown(withdraw, position.decimals)}`);
     await client.withdraw(position.symbol, withdraw);
   }
 
   for (const position of supply) {
-    if (position.current > position.target) continue;
-    const action = position.current === position.target
-      ? 'keep'
-      : `supply ${shown(position.target - position.current, position.decimals)}`;
+    if (position.current > position.target && !closeEnough(position)) continue;
+    const shortfall = position.target - position.current;
+    const action = shortfall <= roundingDust ? 'keep' : `supply ${shown(shortfall, position.decimals)}`;
     logPosition('supply', position, action);
-    if (position.current === position.target) continue;
-    await client.supply(position.symbol, position.target - position.current);
+    if (shortfall <= roundingDust) continue;
+    await client.supply(position.symbol, shortfall);
   }
 
   for (const position of borrow) {
-    if (position.current > position.target) continue;
-    const action = position.current === position.target
-      ? 'keep'
-      : `borrow ${shown(position.target - position.current, position.decimals)}`;
+    if (position.current > position.target && !closeEnough(position)) continue;
+    const shortfall = position.target - position.current;
+    const action = shortfall <= roundingDust ? 'keep' : `borrow ${shown(shortfall, position.decimals)}`;
     logPosition('borrow', position, action);
-    if (position.current === position.target) continue;
-    await client.borrow(position.symbol, position.target - position.current);
+    if (shortfall <= roundingDust) continue;
+    await client.borrow(position.symbol, shortfall);
   }
 
   for (const [symbol, position] of entries) {
@@ -94,6 +95,14 @@ async function targets(
     });
   }
   return positions;
+}
+
+function closeEnough(position: Target): boolean {
+  if (position.target === 0n) return position.current === 0n;
+  const gap = position.current > position.target
+    ? position.current - position.target
+    : position.target - position.current;
+  return gap <= roundingDust;
 }
 
 function logPosition(field: 'supply' | 'borrow', position: Target, action: string): void {
