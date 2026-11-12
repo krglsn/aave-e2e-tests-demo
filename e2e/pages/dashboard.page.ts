@@ -48,6 +48,9 @@ export class DashboardPage extends BasePage {
   readonly liquidationRisk = this.actionModal.getByText(
     'Borrowing this amount will reduce your health factor and increase risk of liquidation.',
   );
+  readonly withdrawLiquidationRisk = this.actionModal.getByText(
+    'Withdrawing this amount will reduce your health factor and increase risk of liquidation.',
+  );
   readonly collateralValue = this.yourSuppliesPanel
     .locator('div')
     .filter({ hasText: /^Collateral/ })

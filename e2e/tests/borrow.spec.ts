@@ -194,6 +194,62 @@ test.describe('Borrow&repay', { tag: '@Borrow&repay' }, () => {
     await preconditionBuilder({ LINK: { borrow: '1', approval: 'none' } });
     await expectUnlimitedAllowance(wallet1Client.address, connectedWalletPage, dashboardPage, blockchainClient, wallet);
   });
+
+  test('full repay', {
+    annotation: { type: 'Test Id', description: 'BR-009' },
+  }, async ({ preconditionBuilder, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+    test.setTimeout(300_000);
+    await expectAnySupply(blockchainClient, wallet1Client.address);
+    await preconditionBuilder({
+      USDC: { borrow: '0' },
+      USDT: { borrow: '0' },
+      ETH: { borrow: '0' },
+      LINK: { borrow: '1' },
+    });
+    const before = await readLink(blockchainClient, wallet1Client.address);
+    await openDashboard(connectedWalletPage, dashboardPage, wallet1Client.address);
+    const healthBefore = await dashboardPage.healthFactorValue.innerText();
+
+    await dashboardPage.openRepay('LINK');
+    await expect(dashboardPage.modalHeading('Repay LINK')).toBeVisible();
+    await dashboardPage.chooseMaxAmount();
+    await expect.poll(async () => dashboardPage.enteredAmount()).not.toBe('');
+    await approveIfRequired(dashboardPage, wallet, before.pool, before.debt);
+    await expect(dashboardPage.actionButton).toBeEnabled();
+    const projectedDebt = (await dashboardPage.overviewValues('Remaining debt', 2))[1];
+    expect(Number(projectedDebt)).toBe(0);
+
+    await dashboardPage.submitModalAction('Repay LINK');
+    await expect(dashboardPage.signatureProgress).toBeVisible();
+    const action = readPoolAction(await wallet.signatureRequest());
+    expect(action.name === 'repay' || action.name === 'repayWithPermit').toBe(true);
+    expect(action.asset).toBe(before.asset);
+    expect(action.amount === maxUint256 || action.amount >= before.debt).toBe(true);
+    expect(action.interestRateMode).toBe(2n);
+    expect(action.onBehalfOf).toBe(getAddress(wallet1Client.address));
+    await wallet.sign();
+    await dashboardPage.expectTransactionConfirmed();
+    await dashboardPage.finishAction();
+
+    const after = await readLink(blockchainClient, wallet1Client.address);
+    expect(after.debt).toBe(0n);
+    expect(before.balance - after.balance).toBeGreaterThanOrEqual(before.debt);
+    expect(before.balance - after.balance - before.debt).toBeLessThan(before.debt / 100n);
+    await expect(dashboardPage.borrowedAssetRow('LINK')).toBeHidden();
+    if (after.account.totalDebt.raw === 0n) {
+      await expect(dashboardPage.nothingBorrowed).toBeVisible();
+      await expect(dashboardPage.healthFactor).toBeHidden();
+      await expect(dashboardPage.borrowedPositions).toHaveCount(0);
+      return;
+    }
+    expect(after.account.healthFactor.raw).not.toBe(before.account.healthFactor.raw);
+    expectDisplayed(
+      await dashboardPage.healthFactorValue.innerText(),
+      after.account.healthFactor.raw,
+      after.account.healthFactor.decimals,
+    );
+    expect(await dashboardPage.healthFactorValue.innerText()).not.toBe(healthBefore);
+  });
 });
 
 async function expectLimitedAllowance(

@@ -3,6 +3,7 @@ import { compareDisplayedAmount, netWorth, toRaw, type UserAccountData } from '.
 import type { ChainClient } from '../blockchain/index.js';
 import { getNetwork } from '../config/networks.js';
 import { expect, test } from '../fixtures/index.js';
+import type { AaveClient } from '../blockchain/aave-client.js';
 import { readPoolAction } from '../helpers/protocol.js';
 import type { DashboardPage } from '../pages/dashboard.page.js';
 
@@ -111,6 +112,78 @@ test.describe('Withdraw flow', { tag: '@Withdraw flow' }, () => {
     expect(await dashboardPage.netWorthValue.innerText()).toBe(netWorthBefore);
     expect(await dashboardPage.collateralValue.innerText()).toBe(collateralBefore);
   });
+
+  test.describe('WF-003', () => {
+  test('withdraw 10 USDC', {
+    annotation: { type: 'Test Id', description: 'WF-003' },
+  }, async ({ preconditionBuilder, aaveClient, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient, wallet }) => {
+    test.setTimeout(300_000);
+    // 115 USDT of debt puts the health factor after this withdraw inside the 1–1.5 warning band.
+    await preconditionBuilder({
+      USDC: { supply: await supplyTarget(aaveClient, 'USDC') },
+      USDT: { supply: await supplyTarget(aaveClient, 'USDT'), borrow: '115' },
+      LINK: { borrow: '0' },
+    });
+    const position = await readPosition(blockchainClient, wallet1Client.address, 'USDC');
+    await dashboardPage.open();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
+
+    await dashboardPage.openWithdraw('USDC');
+    await expect(dashboardPage.modalHeading('Withdraw USDC')).toBeVisible();
+    await dashboardPage.fillAmount('10');
+    await expect(dashboardPage.withdrawLiquidationRisk).toBeVisible();
+    const [remaining] = await dashboardPage.overviewValues('Remaining supply', 1);
+    expectDisplayed(remaining, position.supplied - toRaw('10', position.decimals), position.decimals);
+    const projectedHealth = (await dashboardPage.overviewValues('Health factor', 2))[1];
+    expect(Number(projectedHealth)).toBeGreaterThanOrEqual(1);
+    expect(Number(projectedHealth)).toBeLessThan(1.5);
+    await expect(dashboardPage.withdrawLiquidationRisk).toBeVisible();
+    await expect(dashboardPage.actionButton).toBeDisabled();
+
+    await dashboardPage.acknowledgeRisks();
+    await expect(dashboardPage.actionButton).toBeEnabled();
+    await dashboardPage.submitModalAction('Withdraw USDC');
+    await expect(dashboardPage.signatureProgress).toBeVisible();
+    const action = readPoolAction(await wallet.signatureRequest());
+    expect(action.name).toBe('withdraw');
+    expect(action.asset).toBe(position.asset);
+    expect(action.amount).toBe(toRaw('10', position.decimals));
+    await wallet.sign();
+    await dashboardPage.expectTransactionConfirmed();
+    await dashboardPage.finishAction();
+
+    const after = await readPosition(blockchainClient, wallet1Client.address, 'USDC');
+    const suppliedDecrease = position.supplied - after.supplied;
+    expect(suppliedDecrease).toBeGreaterThanOrEqual(toRaw('10', position.decimals) - 1n);
+    expect(suppliedDecrease).toBeLessThanOrEqual(toRaw('10', position.decimals) + 1n);
+  });
+  });
+
+  test('full withdraw not allowed', {
+    annotation: { type: 'Test Id', description: 'WF-004' },
+  }, async ({ preconditionBuilder, aaveClient, wallet1Client, connectedWalletPage, dashboardPage, blockchainClient }) => {
+    test.setTimeout(300_000);
+    // 90 USDT cannot be borrowed against 100 USDC at the current loan-to-value, so USDT supply stays.
+    await preconditionBuilder({
+      USDC: { supply: await supplyTarget(aaveClient, 'USDC') },
+      USDT: { supply: await supplyTarget(aaveClient, 'USDT'), borrow: '90' },
+    });
+    const position = await readPosition(blockchainClient, wallet1Client.address, 'USDC');
+    await dashboardPage.open();
+    await expect(connectedWalletPage.accountButton(wallet1Client.address)).toBeVisible();
+    const suppliedText = await dashboardPage.suppliedAssetRow('USDC').getByTestId('nativeAmount').innerText();
+    expectDisplayed(suppliedText, position.supplied, position.decimals);
+
+    await dashboardPage.openWithdraw('USDC');
+    await expect(dashboardPage.modalHeading('Withdraw USDC')).toBeVisible();
+    await dashboardPage.chooseMaxAmount();
+    await expect.poll(async () => dashboardPage.enteredAmount()).not.toBe('');
+    const maxWithdraw = toRaw(await dashboardPage.enteredAmount(), position.decimals);
+    expect(maxWithdraw).toBeGreaterThan(0n);
+    expect(maxWithdraw).toBeLessThan(position.supplied);
+    const [remaining] = await dashboardPage.overviewValues('Remaining supply', 1);
+    expect(toRaw(remaining, position.decimals)).toBeGreaterThan(0n);
+  });
 });
 
 async function expectPreview(
@@ -152,4 +225,11 @@ function expectDisplayed(displayed: string, raw: bigint, decimals: number): void
 
 function difference(left: bigint, right: bigint): bigint {
   return left > right ? left - right : right - left;
+}
+
+/** Avoids topping up a 100 supply by one raw unit, which the pool rejects. */
+async function supplyTarget(client: AaveClient, symbol: 'USDC' | 'USDT'): Promise<string | undefined> {
+  const supply = await client.getSupply(symbol);
+  const target = toRaw('100', supply.decimals);
+  return supply.raw + 5n < target ? '100' : undefined;
 }

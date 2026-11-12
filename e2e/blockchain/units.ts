@@ -21,9 +21,16 @@ export function toChainAmount(raw: bigint, decimals: number): ChainAmount {
   return { raw, decimals, human: toHuman(raw, decimals) };
 }
 
+/** Converts a human amount to raw units. Extra fraction digits are truncated to `decimals`. */
 export function toRaw(human: string, decimals: number): bigint {
   assertDecimals(decimals);
-  return parseUnits(human.replace(/,/g, '').trim(), decimals);
+  const normalized = human.replace(/,/g, '').trim();
+  const negative = normalized.startsWith('-');
+  const unsigned = negative ? normalized.slice(1) : normalized;
+  const [whole, fraction = ''] = unsigned.split('.');
+  const digits = fraction.replace(/\D/g, '').slice(0, decimals);
+  const amount = `${negative ? '-' : ''}${digits.length > 0 ? `${whole}.${digits}` : whole}`;
+  return parseUnits(amount, decimals);
 }
 
 export function toHuman(raw: bigint, decimals: number): string {
