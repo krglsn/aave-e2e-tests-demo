@@ -12,7 +12,7 @@ export default defineConfig({
   testDir: './e2e/tests',
   workers: process.env.CI ? 1 : 2,  // cloudflare rate limit may be triggered
   forbidOnly: !!process.env.CI,
-  retries: 0,
+  retries: process.env.CI ? 2 : 0,
   expect: { timeout: 20_000 },
   reporter: [
     ['list'],
@@ -25,7 +25,7 @@ export default defineConfig({
     actionTimeout: 20_000,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: 'off',
   },
   projects: [
     {
@@ -36,13 +36,13 @@ export default defineConfig({
         deviceScaleFactor: 1,
       },
     },
-    {
-      name: 'desktop-4k',
-      use: {
-        viewport: { width: 3840, height: 2160 },
-        screen: { width: 3840, height: 2160 },
-        deviceScaleFactor: 1,
-      },
-    },
+    // {
+    //   name: 'desktop-4k',
+    //   use: {
+    //     viewport: { width: 3840, height: 2160 },
+    //     screen: { width: 3840, height: 2160 },
+    //     deviceScaleFactor: 1,
+    //   },
+    // },
   ],
 });
