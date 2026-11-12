@@ -26,6 +26,8 @@ jobs:
           RPC_URL_BASE_SEPOLIA: ${{ secrets.RPC_URL_BASE_SEPOLIA }}
           WALLET1_PRIVATE_KEY: ${{ secrets.WALLET1_PRIVATE_KEY }}
           WALLET2_PRIVATE_KEY: ${{ secrets.WALLET2_PRIVATE_KEY }}
+      - if: ${{ !cancelled() }}
+        run: git config --system --add safe.directory '*'
       - uses: dorny/test-reporter@v3
         if: ${{ !cancelled() }}
         with:
